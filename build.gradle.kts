@@ -1,6 +1,5 @@
 plugins {
     id("java")
-    id("com.sailthru.gradle") version("v0.7.0")
 }
 
 group = "com.sailthru"
