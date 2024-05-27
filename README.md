@@ -4,7 +4,7 @@ This project contains the implementation of AWS Lambda functions for processing 
 
 ## Prerequisites
 
-- **Java Development Kit (JDK) 8 or later**
+- **Java Development Kit (JDK) 17 or later**
 - **Gradle**
 - **AWS CLI** configured with appropriate permissions
 
