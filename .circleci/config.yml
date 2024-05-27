@@ -58,7 +58,7 @@ jobs:
           name: Check AWS version
           command: |
             aws --version
-      - aws-cli/run:
+      - run:
           command: aws sts get-caller-identity
       - aws-s3/copy:
           arguments: |
@@ -86,7 +86,7 @@ jobs:
       - run:
           name: Check AWS version
           command: aws --version
-      - aws-cli/run:
+      - run:
           command: aws sts get-caller-identity
       - aws-s3/copy:
           arguments: |
