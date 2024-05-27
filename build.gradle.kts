@@ -1,8 +1,8 @@
-import com.sailthru.gradle.ProjectType
+//import com.sailthru.gradle.ProjectType
 
 plugins {
     id("java")
-    id("com.sailthru.gradle") version("v0.7.0")
+//    id("com.sailthru.gradle") version("v0.7.0")
 }
 
 group = "com.sailthru"
@@ -35,8 +35,8 @@ tasks.register<Zip>("buildZip") {
     }
 }
 
-sailthru {
-    type = ProjectType.CONTAINER_SERVICE
-    javaVersion = JavaVersion.VERSION_1_8
-    checkstyleEnabled = false
-}
+//sailthru {
+//    type = ProjectType.CONTAINER_SERVICE
+//    javaVersion = JavaVersion.VERSION_1_8
+//    checkstyleEnabled = false
+//}
