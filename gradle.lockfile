@@ -1,4 +1,31 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
-empty=annotationProcessor,compileClasspath
+com.amazonaws:aws-java-sdk-core:1.12.475=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.amazonaws:aws-java-sdk-sqs:1.12.475=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.amazonaws:aws-lambda-java-core:1.2.1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.amazonaws:aws-lambda-java-events:3.11.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.amazonaws:jmespath-java:1.12.475=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson.core:jackson-annotations:2.12.7=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson.core:jackson-core:2.12.7=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson.core:jackson-databind:2.12.7.1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.12.7=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson:jackson-bom:2.12.7=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+commons-codec:commons-codec:1.15=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+commons-logging:commons-logging:1.2=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+joda-time:joda-time:2.8.1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.apache.httpcomponents:httpclient:4.5.13=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.apache.httpcomponents:httpcore:4.4.13=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.apiguardian:apiguardian-api:1.1.2=testCompileClasspath
+org.junit.jupiter:junit-jupiter-api:5.9.1=testCompileClasspath,testRuntimeClasspath
+org.junit.jupiter:junit-jupiter-engine:5.9.1=testRuntimeClasspath
+org.junit.jupiter:junit-jupiter-params:5.9.1=testCompileClasspath,testRuntimeClasspath
+org.junit.jupiter:junit-jupiter:5.9.1=testCompileClasspath,testRuntimeClasspath
+org.junit.platform:junit-platform-commons:1.9.1=testCompileClasspath,testRuntimeClasspath
+org.junit.platform:junit-platform-engine:1.9.1=testRuntimeClasspath
+org.junit:junit-bom:5.9.1=testCompileClasspath,testRuntimeClasspath
+org.opentest4j:opentest4j:1.2.0=testCompileClasspath,testRuntimeClasspath
+org.slf4j:slf4j-api:1.7.32=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.slf4j:slf4j-simple:1.7.32=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+software.amazon.ion:ion-java:1.0.2=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+empty=annotationProcessor,testAnnotationProcessor

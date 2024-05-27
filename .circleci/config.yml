@@ -1,0 +1,86 @@
+version: 2.1
+
+orbs:
+  aws-cli: circleci/aws-cli@3.1.1
+
+references:
+  container_config: &container_config
+    environment:
+      _JAVA_OPTIONS: "-Xmx3g"
+      GRADLE_OPTS: "-Dorg.gradle.workers.max=2"
+    docker:
+      - image: cimg/openjdk:17.0
+
+jobs:
+  build:
+    <<: *container_config
+    steps:
+      - checkout
+      - restore_cache:
+          key: v1-gradle-cache-{{ checksum "build.gradle" }}
+      - run:
+          name: Install dependencies
+          command: ./gradlew build -x test
+      - save_cache:
+          paths:
+            - ~/.gradle/caches
+          key: v1-gradle-cache-{{ checksum "build.gradle" }}
+      - run:
+          name: Assemble ZIP
+          command: ./gradlew buildZip
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+
+  test:
+    <<: *container_config
+    steps:
+      - checkout
+      - restore_cache:
+          key: v1-gradle-cache-{{ checksum "build.gradle" }}
+      - run:
+          name: Run tests
+          command: ./gradlew test
+
+  deploy_to_stage:
+    <<: *container_config
+    steps:
+      - attach_workspace:
+          at: .
+      - aws-cli/setup:
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_ACCESS_KEY_SECRET
+          aws-region: DEV_AWS_REGION
+      - run:
+          name: Check AWS version
+          command: |
+            aws --version
+      - run:
+          name: Check Identity
+          command: |
+            aws sts get-caller-identity
+      - run:
+          name: "Upload lambdas to stage S3 buckets with UTC timestamp as the key"
+          command: |
+            function deploy_package() {
+              aws lambda update-function-code --function-name $1 --s3-bucket sailthru-lambda-packages-stage --s3-key $2 --publish
+            }
+
+            S3_ROOT=s3://sailthru-lambda-packages-stage
+            S3_KEY=mparticle-outgoing-lambda/$CIRCLE_SHA1/package.zip
+
+            # Upload
+            aws s3 cp build/distributions/project.zip $S3_ROOT/$S3_KEY
+
+workflows:
+  version: 2
+  workflow:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - deploy_to_stage:
+          requires:
+            - test
