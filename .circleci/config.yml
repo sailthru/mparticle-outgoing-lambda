@@ -51,9 +51,6 @@ jobs:
       - attach_workspace:
           at: .
       - aws-cli/setup:
-          aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-secret-access-key: AWS_ACCESS_KEY_SECRET
-          aws-region: DEV_AWS_REGION
       - run:
           name: Check AWS version
           command: |
@@ -80,9 +77,6 @@ jobs:
       - attach_workspace:
           at: .
       - aws-cli/setup:
-          aws-access-key-id: AWS_ACCESS_KEY_ID_PROD
-          aws-secret-access-key: AWS_ACCESS_KEY_SECRET_PROD
-          aws-region: PROD_AWS_REGION
       - run:
           name: Check AWS version
           command: aws --version
