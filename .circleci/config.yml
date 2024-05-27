@@ -61,7 +61,7 @@ jobs:
           command: |
             aws sts get-caller-identity
       - run:
-          name: "Upload lambdas to stage S3 buckets with UTC timestamp as the key"
+          name: "Upload mparticle outgoing lambda to stage S3 buckets"
           command: |
             function deploy_package() {
               aws lambda update-function-code --function-name $1 --s3-bucket sailthru-lambda-packages-stage --s3-key $2 --publish
@@ -72,6 +72,9 @@ jobs:
 
             # Upload
             aws s3 cp build/distributions/project.zip $S3_ROOT/$S3_KEY
+            
+            # deploy each S3 package to the lambdas - function name defined in infra
+            deploy_package mparticle_outgoing_sqs_message_processor $S3_KEY
 
 workflows:
   version: 2
