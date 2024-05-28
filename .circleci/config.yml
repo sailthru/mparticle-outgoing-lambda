@@ -121,6 +121,14 @@ workflows:
       - test:
           requires:
             - build
+      - assemble:
+          context:
+            - "Docker Hub"
+            - "Nexus Credentials"
       - deploy_to_stage:
+          context:
+            - "Docker Hub"
+            - "Nexus Credentials"
           requires:
+            - assemble
             - test
