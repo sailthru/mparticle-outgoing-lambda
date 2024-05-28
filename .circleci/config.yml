@@ -51,7 +51,7 @@ jobs:
           at: .
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-secret-access-key: AWS_ACCESS_KEY_SECRET
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
           aws-region: DEV_AWS_REGION
       - run:
           name: Check AWS version
@@ -59,7 +59,7 @@ jobs:
             aws --version
       - run:
           name: Echo AWS region
-          command: echo "AWS_REGION=${AWS_REGION}"
+          command: echo "DEV_AWS_REGION=${DEV_AWS_REGION}"
       - run:
           name: Echo AWS_ACCESS_KEY_ID
           command: echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
@@ -70,17 +70,17 @@ jobs:
           name: Check Identity
           command: |
             aws sts get-caller-identity
-#      - aws-s3/copy:
-#          from: build/distributions/project.zip
-#          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
-#      - run:
-#          name: "Deploy mparticle outgoing package to Lambda to stage"
-#          command: |
-#            aws lambda update-function-code \
-#              --function-name mparticle_outgoing_sqs_message_processor \
-#              --s3-bucket sailthru-lambda-packages-stage \
-#              --s3-key mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip \
-#              --publish
+      - aws-s3/copy:
+          from: build/distributions/project.zip
+          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
+      - run:
+          name: "Deploy mparticle outgoing package to Lambda to stage"
+          command: |
+            aws lambda update-function-code \
+              --function-name mparticle_outgoing_sqs_message_processor \
+              --s3-bucket sailthru-lambda-packages-stage \
+              --s3-key mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip \
+              --publish
 
   deploy_to_prod:
     <<: *container_config
@@ -89,7 +89,7 @@ jobs:
           at: .
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-secret-access-key: AWS_ACCESS_KEY_SECRET
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
           aws-region: PROD_AWS_REGION
       - run:
           name: Check AWS version
