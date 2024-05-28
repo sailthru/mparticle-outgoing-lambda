@@ -51,8 +51,8 @@ jobs:
       - attach_workspace:
           at: .
       - aws-cli/setup:
-          aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          aws_access_key_id: AWS_ACCESS_KEY_ID_BLUE
+          aws_secret_access_key: AWS_SECRET_ACCESS_KEY_BLUE
           aws-region: DEV_AWS_REGION
       - run:
           name: Check AWS version
