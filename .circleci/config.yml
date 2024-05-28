@@ -64,7 +64,7 @@ jobs:
           command: echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
       - run:
           name: Echo AWS_ACCESS_KEY_SECRET
-          command: echo "AWS_ACCESS_KEY_SECRET=${AWS_ACCESS_KEY_SECRET}"
+          command: echo "AWS_ACCESS_KEY_SECRET=${AWS_ACCESS_KEY_SECRET} "
 #      - run:
 #          name: Check Identity
 #          command: |
