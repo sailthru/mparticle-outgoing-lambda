@@ -50,8 +50,8 @@ jobs:
       - attach_workspace:
           at: .
       - aws-cli/setup:
-          role_arn: << parameters.aws_role_arn >>
-          region: << parameters.aws_region >>
+          aws_role_arn: << parameters.aws_role_arn >>
+          aws_region: << parameters.aws_region >>
       - run:
           name: Check AWS version
           command: |
