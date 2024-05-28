@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   aws-cli: circleci/aws-cli@3.1.1
+  aws-s3: circleci/aws-s3@4.0.0
   jvm: sailthru/jvm@0.3.0
 
 references:
