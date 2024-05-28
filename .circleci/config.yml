@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   aws-cli: circleci/aws-cli@4.0
-  aws-s3: circleci/aws-s3@4.0
+  aws-s3: circleci/aws-s3@3.0
   jvm: sailthru/jvm@0.3.0
 
 references:
@@ -51,9 +51,9 @@ jobs:
       - attach_workspace:
           at: .
       - aws-cli/setup:
-          aws_access_key_id: AWS_ACCESS_KEY_ID
-          aws_secret_access_key: AWS_ACCESS_KEY_SECRET
-          region: DEV_AWS_REGION
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_ACCESS_KEY_SECRET
+          aws-region: DEV_AWS_REGION
       - run:
           name: Check AWS version
           command: |
@@ -78,9 +78,9 @@ jobs:
       - attach_workspace:
           at: .
       - aws-cli/setup:
-          aws_access_key_id: AWS_ACCESS_KEY_ID_PROD
-          aws_secret_access_key: AWS_ACCESS_KEY_SECRET_PROD
-          region: PROD_AWS_REGION
+          aws-access-key-id: AWS_ACCESS_KEY_ID_PROD
+          aws-secret-access-key: AWS_ACCESS_KEY_SECRET_PROD
+          aws-region: PROD_AWS_REGION
       - run:
           name: Check AWS version
           command: aws --version
