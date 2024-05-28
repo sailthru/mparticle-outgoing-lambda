@@ -52,14 +52,14 @@ jobs:
           at: .
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          aws-secret-access-key: AWS_ACCESS_KEY_SECRET
           aws-region: AWS_REGION
       - run:
           name: Check AWS version
           command: |
             aws --version
-#      - run:
-#          command: aws sts get-caller-identity
+      - run:
+          command: aws sts get-caller-identity
 #      - aws-s3/copy:
 #          from: build/distributions/project.zip
 #          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
