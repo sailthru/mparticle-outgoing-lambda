@@ -95,7 +95,9 @@ jobs:
           name: Check AWS version
           command: aws --version
       - run:
-          command: aws sts get-caller-identity
+          name: Check Identity
+          command: |
+            aws sts get-caller-identity
       - aws-s3/copy:
           arguments: |
             --acl private
