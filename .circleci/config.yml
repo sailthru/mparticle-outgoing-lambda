@@ -52,7 +52,7 @@ jobs:
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY_ID
           aws-secret-access-key: AWS_ACCESS_KEY_SECRET
-          aws-region: AWS_REGION
+          aws-region: DEV_AWS_REGION
       - run:
           name: Check AWS version
           command: |
