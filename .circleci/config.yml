@@ -57,9 +57,18 @@ jobs:
           command: |
             aws --version
       - run:
-          name: Check Identity
-          command: |
-            aws sts get-caller-identity
+          name: Echo AWS region
+          command: echo "AWS_REGION=${AWS_REGION}"
+      - run:
+          name: Echo AWS_ACCESS_KEY_ID
+          command: echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
+      - run:
+          name: Echo AWS_ACCESS_KEY_SECRET
+          command: echo "AWS_ACCESS_KEY_SECRET=${AWS_ACCESS_KEY_SECRET}"
+#      - run:
+#          name: Check Identity
+#          command: |
+#            aws sts get-caller-identity
 #      - aws-s3/copy:
 #          from: build/distributions/project.zip
 #          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
