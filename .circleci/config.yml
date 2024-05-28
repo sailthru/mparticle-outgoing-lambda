@@ -58,7 +58,7 @@ jobs:
             aws --version
       - run:
           name: Echo AWS region
-          command: echo "AWS_REGION=${AWS_REGION}"
+          command: echo "AWS_REGION=${AWS_REGION} "
       - run:
           name: Echo AWS_ACCESS_KEY_ID
           command: echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
