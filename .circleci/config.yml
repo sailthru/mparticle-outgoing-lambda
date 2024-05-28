@@ -6,6 +6,18 @@ orbs:
   jvm: sailthru/jvm@0.3.0
 
 references:
+  workspace_root: &workspace_root
+    ~/project
+
+  persist_workspace: &persist_workspace
+    persist_to_workspace:
+      root: *workspace_root
+      paths: .
+
+  attach_workspace: &attach_workspace
+    attach_workspace:
+      at: *workspace_root
+
   container_config: &container_config
     environment:
       _JAVA_OPTIONS: "-Xmx3g"
@@ -30,10 +42,7 @@ jobs:
       - run:
           name: Assemble ZIP
           command: ./gradlew buildZip
-      - persist_to_workspace:
-          root: .
-          paths:
-            - .
+      - *persist_workspace
 
   test:
     <<: *container_config
@@ -48,8 +57,7 @@ jobs:
   deploy_to_stage:
     <<: *container_config
     steps:
-      - attach_workspace:
-          at: .
+      - *attach_workspace
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY_ID
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY
@@ -86,8 +94,7 @@ jobs:
   deploy_to_prod:
     <<: *container_config
     steps:
-      - attach_workspace:
-          at: .
+      - *attach_workspace
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY_ID
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY
@@ -121,14 +128,8 @@ workflows:
       - test:
           requires:
             - build
-      - assemble:
-          context:
-            - "Docker Hub"
-            - "Nexus Credentials"
       - deploy_to_stage:
           context:
-            - "Docker Hub"
-            - "Nexus Credentials"
+            - "AWS Email Stage"
           requires:
-            - assemble
             - test
