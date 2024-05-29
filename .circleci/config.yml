@@ -24,7 +24,7 @@ references:
 
   attach_workspace: &attach_workspace
     attach_workspace:
-      at: ~/project
+      at: *workspace_root
 
   container_config: &container_config
     environment:
@@ -34,16 +34,10 @@ references:
       - image: cimg/openjdk:21.0
 
 jobs:
-  checkout_code:
-    <<: *container_config
-    steps:
-      - checkout
-      - *persist_workspace
-
   build:
     <<: *container_config
     steps:
-      - *attach_workspace
+      - checkout
       - run:
           name: Install dependencies
           command: ./gradlew build -x test
@@ -75,7 +69,7 @@ jobs:
           command: |
             aws sts get-caller-identity
       - aws-s3/copy:
-          from: build/distributions/mparticle-outgoing-lambda-1.0-SNAPSHOT.zip
+          from: ~/project/build/distributions/mparticle-outgoing-lambda-1.0-SNAPSHOT.zip
           to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
       - run:
           name: "Deploy mparticle outgoing package to Lambda to stage"
@@ -119,7 +113,6 @@ workflows:
   version: 2
   workflow:
     jobs:
-      - checkout_code
       - build
       - jvm/test:
           name: test
