@@ -5,13 +5,30 @@ orbs:
   aws-s3: circleci/aws-s3@4.0.0
   jvm: sailthru/jvm@0.3.0
 
+parameters:
+    java_version:
+      description: String version of Java this project depends on.
+      type: string
+      default: "21.0"
+
+executors:
+  test_containers:
+    parameters:
+      java_version:
+        type: string
+    docker:
+      - image: cimg/openjdk:<< parameters.java_version >>
+        auth:
+          username: $DOCKER_HUB_USERNAME
+          password: $DOCKER_HUB_PASSWORD
+
 references:
   container_config: &container_config
     environment:
       _JAVA_OPTIONS: "-Xmx3g"
       GRADLE_OPTS: "-Dorg.gradle.workers.max=2"
     docker:
-      - image: cimg/openjdk:21.0.2
+      - image: cimg/openjdk:<< parameters.java_version >>
 
 jobs:
   build:
@@ -96,11 +113,15 @@ workflows:
       - jvm/test:
           name: test
           context:
-            - "AWS Email Stage"
-          requires:
-            - build
+            - Docker Hub
+            - Nexus Credentials
+          executor:
+            name: test_containers
+            java_version: << pipeline.parameters.java_version >>
+          resource_class: medium
       - deploy_to_stage:
           context:
-            - "AWS Email Stage"
+            - Docker Hub
+            - Nexus Credentials
           requires:
-            - test
+            - jvm/test
