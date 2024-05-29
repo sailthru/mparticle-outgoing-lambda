@@ -55,7 +55,7 @@ jobs:
           command: |
             aws sts get-caller-identity
       - aws-s3/copy:
-          from: build/distributions/project.zip
+          from: libs/mparticle-outgoing-lambda-1.0-SNAPSHOT.zip
           to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
       - run:
           name: "Deploy mparticle outgoing package to Lambda to stage"
