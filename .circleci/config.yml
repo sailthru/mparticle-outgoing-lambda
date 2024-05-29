@@ -96,13 +96,11 @@ workflows:
       - jvm/test:
           name: test
           context:
-            - Docker Hub
-            - Nexus Credentials
+            - "AWS Email Stage"
           requires:
             - build
       - deploy_to_stage:
           context:
-            - Docker Hub
-            - Nexus Credentials
+            - "AWS Email Stage"
           requires:
             - test
