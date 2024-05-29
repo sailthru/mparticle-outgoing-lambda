@@ -18,7 +18,7 @@ jobs:
     <<: *container_config
     steps:
       - checkout
-      - jvm/with_cache:
+      - jvm/test:
           steps:
             - run:
                 name: Install dependencies
