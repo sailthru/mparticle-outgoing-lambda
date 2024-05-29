@@ -11,7 +11,7 @@ references:
       _JAVA_OPTIONS: "-Xmx3g"
       GRADLE_OPTS: "-Dorg.gradle.workers.max=2"
     docker:
-      - image: cimg/openjdk:21.0
+      - image: cimg/openjdk:17.0
 
 jobs:
   build:
