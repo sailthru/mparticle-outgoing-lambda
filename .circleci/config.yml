@@ -38,7 +38,7 @@ jobs:
             - .
       - run:
           name: Setup Environment Variables
-          command: ls
+          command: ls build
 
   deploy_to_stage:
     <<: *container_config
