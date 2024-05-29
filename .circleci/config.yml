@@ -128,4 +128,5 @@ workflows:
             - Nexus Credentials
             - AWS ECR Push
           requires:
+            - build
             - test
