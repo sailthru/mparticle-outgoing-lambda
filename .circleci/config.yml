@@ -114,4 +114,4 @@ workflows:
             - Docker Hub
             - Nexus Credentials
           requires:
-            - jvm/test
+            - test
