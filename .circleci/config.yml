@@ -18,29 +18,16 @@ jobs:
     <<: *container_config
     steps:
       - checkout
-      - jvm/test:
-          steps:
-            - run:
-                name: Install dependencies
-                command: ./gradlew build -x test
-            - run:
-                name: Assemble ZIP
-                command: ./gradlew buildZip
+      - run:
+          name: Install dependencies
+          command: ./gradlew build -x test
+      - run:
+          name: Assemble ZIP
+          command: ./gradlew buildZip
       - persist_to_workspace:
           root: .
           paths:
             - .
-
-  test:
-    docker:
-      - image: cimg/openjdk:21.0
-    steps:
-      - checkout
-      - jvm/test:
-          steps:
-            - run:
-                name: Run tests
-                command: ./gradlew test
 
   deploy_to_stage:
     <<: *container_config
@@ -106,7 +93,11 @@ workflows:
   workflow:
     jobs:
       - build
-      - test:
+      - jvm/test:
+          name: test
+          context:
+            - Docker Hub
+            - Nexus Credentials
           requires:
             - build
       - deploy_to_stage:
