@@ -36,15 +36,15 @@ jobs:
           root: .
           paths:
             - .
-      - run:
-          name: Setup Environment Variables
-          command: ls build/distributions
 
   deploy_to_stage:
     <<: *container_config
     steps:
       - attach_workspace:
           at: .
+      - run:
+          name: Dir structure
+          command: ls
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY_ID
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY
