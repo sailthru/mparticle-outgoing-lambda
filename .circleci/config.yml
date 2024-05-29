@@ -44,18 +44,12 @@ jobs:
       - run:
           name: Assemble ZIP
           command: ./gradlew buildZip
-      - run:
-          name: Dir structure after build but before persisting
-          command: ls -R ~/project
       - *persist_workspace
 
   deploy_to_stage:
     <<: *container_config
     steps:
       - *attach_workspace
-      - run:
-          name: List Directory After Attaching to deploy stage
-          command: ls -R ~/project
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY_ID
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY
@@ -124,9 +118,7 @@ workflows:
           resource_class: medium
       - deploy_to_stage:
           context:
-            - Docker Hub
-            - Nexus Credentials
-            - AWS ECR Push
+            - "AWS Email Stage"
           requires:
             - build
             - test
