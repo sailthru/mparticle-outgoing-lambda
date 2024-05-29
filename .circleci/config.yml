@@ -55,7 +55,7 @@ jobs:
       - *attach_workspace
       - run:
           name: List Directory After Attaching to deploy stage
-          command: ls -R ~/circleci
+          command: ls -R ~/
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY_ID
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY
