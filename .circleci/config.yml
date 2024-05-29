@@ -36,6 +36,9 @@ jobs:
           root: .
           paths:
             - .
+      - run:
+          name: Setup Environment Variables
+          command: ls
 
   deploy_to_stage:
     <<: *container_config
@@ -54,17 +57,17 @@ jobs:
           name: Check Identity
           command: |
             aws sts get-caller-identity
-      - aws-s3/copy:
-          from: build/distributions/mparticle-outgoing-lambda-1.0-SNAPSHOT.zip
-          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
-      - run:
-          name: "Deploy mparticle outgoing package to Lambda to stage"
-          command: |
-            aws lambda update-function-code \
-              --function-name mparticle_outgoing_sqs_message_processor \
-              --s3-bucket sailthru-lambda-packages-stage \
-              --s3-key mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip \
-              --publish
+#      - aws-s3/copy:
+#          from: build/distributions/mparticle-outgoing-lambda-1.0-SNAPSHOT.zip
+#          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
+#      - run:
+#          name: "Deploy mparticle outgoing package to Lambda to stage"
+#          command: |
+#            aws lambda update-function-code \
+#              --function-name mparticle_outgoing_sqs_message_processor \
+#              --s3-bucket sailthru-lambda-packages-stage \
+#              --s3-key mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip \
+#              --publish
 
   deploy_to_prod:
     <<: *container_config
