@@ -113,5 +113,6 @@ workflows:
           context:
             - Docker Hub
             - Nexus Credentials
+            - AWS ECR Push
           requires:
             - test
