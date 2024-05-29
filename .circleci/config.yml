@@ -46,8 +46,8 @@ jobs:
           name: Assemble ZIP
           command: ./gradlew buildZip
       - run:
-          name: Dir structure after build
-          command: ls build/distributions
+          name: Dir structure after build but before persisting
+          command: ls -R ~/project
       - *persist_workspace
 
   deploy_to_stage:
@@ -55,8 +55,8 @@ jobs:
     steps:
       - *attach_workspace
       - run:
-          name: Dir structure while deploying to stage
-          command: ls
+          name: List Directory After Attaching to deploy stage
+          command: ls -R ~/project
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY_ID
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY
