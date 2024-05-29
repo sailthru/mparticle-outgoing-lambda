@@ -36,7 +36,7 @@ jobs:
       - image: cimg/openjdk:21.0
     steps:
       - checkout
-      - jvm/with_cache:
+      - jvm/test:
           steps:
             - run:
                 name: Run tests
