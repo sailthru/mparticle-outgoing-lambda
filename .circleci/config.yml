@@ -11,39 +11,36 @@ references:
       _JAVA_OPTIONS: "-Xmx3g"
       GRADLE_OPTS: "-Dorg.gradle.workers.max=2"
     docker:
-      - image: cimg/openjdk:17.0
+      - image: cimg/openjdk:21.0
 
 jobs:
   build:
     <<: *container_config
     steps:
       - checkout
-      - restore_cache:
-          key: v1-gradle-cache-{{ checksum "build.gradle" }}
-      - run:
-          name: Install dependencies
-          command: ./gradlew build -x test
-      - save_cache:
-          paths:
-            - ~/.gradle/caches
-          key: v1-gradle-cache-{{ checksum "build.gradle" }}
-      - run:
-          name: Assemble ZIP
-          command: ./gradlew buildZip
+      - jvm/with_cache:
+          steps:
+            - run:
+                name: Install dependencies
+                command: ./gradlew build -x test
+            - run:
+                name: Assemble ZIP
+                command: ./gradlew buildZip
       - persist_to_workspace:
           root: .
           paths:
             - .
 
   test:
-    <<: *container_config
+    docker:
+      - image: cimg/openjdk:21.0
     steps:
       - checkout
-      - restore_cache:
-          key: v1-gradle-cache-{{ checksum "build.gradle" }}
-      - run:
-          name: Run tests
-          command: ./gradlew test
+      - jvm/with_cache:
+          steps:
+            - run:
+                name: Run tests
+                command: ./gradlew test
 
   deploy_to_stage:
     <<: *container_config
@@ -58,15 +55,6 @@ jobs:
           name: Check AWS version
           command: |
             aws --version
-      - run:
-          name: Echo AWS region
-          command: echo "DEV_AWS_REGION=${DEV_AWS_REGION}"
-      - run:
-          name: Echo AWS_ACCESS_KEY_ID
-          command: echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
-      - run:
-          name: Echo AWS_ACCESS_KEY_SECRET
-          command: echo "AWS_ACCESS_KEY_SECRET=${AWS_ACCESS_KEY_SECRET}"
       - run:
           name: Check Identity
           command: |
@@ -123,6 +111,7 @@ workflows:
             - build
       - deploy_to_stage:
           context:
-            - "AWS Email Stage"
+            - Docker Hub
+            - Nexus Credentials
           requires:
             - test
