@@ -34,10 +34,16 @@ references:
       - image: cimg/openjdk:21.0
 
 jobs:
-  build:
+  checkout_code:
     <<: *container_config
     steps:
       - checkout
+      - *persist_workspace
+
+  build:
+    <<: *container_config
+    steps:
+      - *attach_workspace
       - run:
           name: Install dependencies
           command: ./gradlew build -x test
@@ -47,6 +53,7 @@ jobs:
       - run:
           name: Dir structure after build but before persisting
           command: ls -R ~/project
+      - *persist_workspace
 
   deploy_to_stage:
     <<: *container_config
@@ -112,6 +119,7 @@ workflows:
   version: 2
   workflow:
     jobs:
+      - checkout_code
       - build
       - jvm/test:
           name: test
