@@ -24,7 +24,7 @@ references:
 
   attach_workspace: &attach_workspace
     attach_workspace:
-      at: *workspace_root
+      at: ~/project
 
   container_config: &container_config
     environment:
@@ -37,7 +37,6 @@ jobs:
   build:
     <<: *container_config
     steps:
-      - *attach_workspace
       - checkout
       - run:
           name: Install dependencies
