@@ -111,12 +111,13 @@ workflows:
   version: 2
   workflow:
     jobs:
-      - build
+      - build:
+          context:
+            - "AWS Email Stage"
       - jvm/test:
           name: test
           context:
-            - Docker Hub
-            - Nexus Credentials
+            - "AWS Email Stage"
           executor:
             name: test_containers
           resource_class: medium
