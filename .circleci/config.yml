@@ -38,12 +38,16 @@ jobs:
     <<: *container_config
     steps:
       - checkout
-      - run:
-          name: Install dependencies
-          command: ./gradlew build -x test
+      - jvm/publish_jar:
+            context:
+              - Docker Hub
+              - Nexus Credentials
       - run:
           name: Assemble ZIP
           command: ./gradlew buildZip
+      - run:
+          name: Dir structure after build but before persisting
+          command: ls -R ~/project
       - *persist_workspace
 
   deploy_to_stage:

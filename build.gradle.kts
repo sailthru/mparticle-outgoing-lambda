@@ -1,3 +1,5 @@
+import com.sailthru.gradle.ProjectType
+
 plugins {
     id("java")
     id("com.sailthru.gradle") version("v0.8.0")
@@ -39,4 +41,9 @@ tasks.register<Zip>("buildZip") {
     into("lib") {
         from(configurations.runtimeClasspath)
     }
+}
+
+sailthru {
+    type = ProjectType.CODE_ARTIFACT_ONLY
+    javaVersion = JavaVersion.VERSION_21
 }
