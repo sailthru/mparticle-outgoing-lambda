@@ -33,15 +33,16 @@ references:
     docker:
       - image: cimg/openjdk:21.0
 
-jobs:
   build:
     <<: *container_config
+    jvm/publish_jar:
+      steps:
+        - checkout
+        - *persist_workspace
+      context:
+        - Docker Hub
+        - Nexus Credentials
     steps:
-      - checkout
-      - jvm/publish_jar:
-            context:
-              - Docker Hub
-              - Nexus Credentials
       - run:
           name: Assemble ZIP
           command: ./gradlew buildZip
