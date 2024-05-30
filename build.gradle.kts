@@ -1,5 +1,6 @@
 plugins {
     id("java")
+    id("com.sailthru.gradle") version("v0.8.0")
 }
 
 group = "com.sailthru"
@@ -33,8 +34,8 @@ tasks.test {
 }
 
 tasks.register<Zip>("buildZip") {
+    dependsOn(tasks.classes)
     from(sourceSets.main.get().output)
-    from(configurations.runtimeClasspath)
     into("lib") {
         from(configurations.runtimeClasspath)
     }
