@@ -33,7 +33,8 @@ references:
     docker:
       - image: cimg/openjdk:21.0
 
-  publish:
+jobs:
+  build:
     <<: *container_config
     jvm/publish_jar:
       steps:
@@ -42,9 +43,6 @@ references:
       context:
         - Docker Hub
         - Nexus Credentials
-
-  build:
-    <<: *container_config
     steps:
       - run:
           name: Assemble ZIP
@@ -119,7 +117,6 @@ workflows:
   version: 2
   workflow:
     jobs:
-      - publish
       - build
       - jvm/test:
           name: test
