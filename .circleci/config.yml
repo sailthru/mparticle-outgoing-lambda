@@ -33,6 +33,19 @@ references:
     docker:
       - image: cimg/openjdk:21.0
 
+  filter_branch_only: &filter_branch_only
+    branches:
+      only: /.*/
+    tags:
+      ignore: /.*/
+
+  filter_main_only: &filter_main_only
+    branches:
+      only:
+        - main
+    tags:
+      ignore: /.*/
+
 jobs:
   build:
     <<: *container_config
@@ -44,9 +57,6 @@ jobs:
       - run:
           name: Assemble ZIP
           command: ./gradlew buildZip
-      - run:
-          name: Dir structure after build but before persisting
-          command: ls -R ~/project
       - *persist_workspace
 
   deploy_to_stage:
@@ -65,23 +75,20 @@ jobs:
           name: Check Identity
           command: |
             aws sts get-caller-identity
+      - aws-s3/copy:
+          from: ~/project/build/distributions/mparticle-outgoing-lambda-SANDBOX.zip
+          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
+      - aws-s3/copy:
+          from: ~/project/build/distributions/mparticle-outgoing-lambda-SANDBOX.zip
+          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/latest/package.zip
       - run:
-          name: Dir structure after build but before persisting
-          command: ls -R ~/project
-#      - aws-s3/copy:
-#          from: ~/project/build/distributions/mparticle-outgoing-lambda-${CIRCLE_SHA1}.zip
-#          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
-#      - aws-s3/copy:
-#          from: ~/project/build/distributions/mparticle-outgoing-lambda-${CIRCLE_SHA1}.zip
-#          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/latest/package.zip
-#      - run:
-#          name: "Deploy mparticle outgoing package to Lambda to stage"
-#          command: |
-#            aws lambda update-function-code \
-#              --function-name mparticle_outgoing_sqs_message_processor \
-#              --s3-bucket sailthru-lambda-packages-stage \
-#              --s3-key mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip \
-#              --publish
+          name: "Deploy mparticle outgoing package to Lambda to stage"
+          command: |
+            aws lambda update-function-code \
+              --function-name mparticle_outgoing_sqs_message_processor \
+              --s3-bucket sailthru-lambda-packages-stage \
+              --s3-key mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip \
+              --publish
 
   deploy_to_prod:
     <<: *container_config
@@ -132,3 +139,11 @@ workflows:
           requires:
             - build
             - test
+          filters: *filter_branch_only
+      - deploy_to_prod:
+          context:
+            - "AWS S3 Lambda Prod"
+          requires:
+            - build
+            - test
+          filters: *filter_main_only
