@@ -66,10 +66,6 @@ workflows:
           context:
             - Docker Hub
             - Nexus Credentials
-          steps:
-            - run:
-                name: Dir structure after build but before persisting
-                command: ls -R ~/project
           requires:
             - jvm/test
           version: $CIRCLE_SHA1
