@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.sailthru"
-version = "1.0-SNAPSHOT"
+version = "SANDBOX"
 
 repositories {
     mavenCentral()
