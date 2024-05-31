@@ -1,14 +1,27 @@
-version: 2.1
-
+version: '2.1'
 orbs:
   aws-cli: circleci/aws-cli@3.1.1
   aws-s3: circleci/aws-s3@4.0.0
   jvm: sailthru/jvm@0.3.0
 
+parameters:
+  project_name:
+    description: Name of the project
+    type: string
+    default: mparticle-outgoing-lambda
+
+  java_version:
+    description: String version of Java this project depends on.
+    type: string
+    default: "21.0"
+
 executors:
   test_containers:
+    parameters:
+      java_version:
+        type: string
     docker:
-      - image: cimg/openjdk:21.0
+      - image: cimg/openjdk:<< parameters.java_version >>
         auth:
           username: $DOCKER_HUB_USERNAME
           password: $DOCKER_HUB_PASSWORD
@@ -33,104 +46,33 @@ references:
     docker:
       - image: cimg/openjdk:21.0
 
-jobs:
-  build:
-    <<: *container_config
-    jobs:
-      - jvm/publish_jar:
-          steps:
-            - checkout
-            - *persist_workspace
-          context:
-            - Docker Hub
-            - Nexus Credentials
-    steps:
-      - run:
-          name: Assemble ZIP
-          command: ./gradlew buildZip
-      - run:
-          name: Dir structure after build but before persisting
-          command: ls -R ~/project
-      - *persist_workspace
-
-  deploy_to_stage:
-    <<: *container_config
-    steps:
-      - *attach_workspace
-      - aws-cli/setup:
-          aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
-          aws-region: STAGE_AWS_REGION
-      - run:
-          name: Check AWS version
-          command: |
-            aws --version
-      - run:
-          name: Check Identity
-          command: |
-            aws sts get-caller-identity
-      - aws-s3/copy:
-          from: ~/project/build/distributions/mparticle-outgoing-lambda-1.0-SNAPSHOT.zip
-          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
-      - aws-s3/copy:
-          from: ~/project/build/distributions/mparticle-outgoing-lambda-1.0-SNAPSHOT.zip
-          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/latest/package.zip
-      - run:
-          name: "Deploy mparticle outgoing package to Lambda to stage"
-          command: |
-            aws lambda update-function-code \
-              --function-name mparticle_outgoing_sqs_message_processor \
-              --s3-bucket sailthru-lambda-packages-stage \
-              --s3-key mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip \
-              --publish
-
-  deploy_to_prod:
-    <<: *container_config
-    steps:
-      - *attach_workspace
-      - aws-cli/setup:
-          aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
-          aws-region: PROD_AWS_REGION
-      - run:
-          name: Check AWS version
-          command: aws --version
-      - run:
-          name: Check Identity
-          command: |
-            aws sts get-caller-identity
-      - aws-s3/copy:
-          from: ~/project/build/distributions/mparticle-outgoing-lambda-1.0-SNAPSHOT.zip
-          to: s3://sailthru-lambda-packages-prod/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
-      - aws-s3/copy:
-          from: ~/project/build/distributions/mparticle-outgoing-lambda-1.0-SNAPSHOT.zip
-          to: s3://sailthru-lambda-packages-prod/mparticle-outgoing-lambda/latest/package.zip
-      - run:
-          name: "Deploy mparticle outgoing package to Lambda to production"
-          command: |
-            aws lambda update-function-code \
-              --function-name mparticle_outgoing_sqs_message_processor \
-              --s3-bucket sailthru-lambda-packages-prod \
-              --s3-key mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip \
-              --publish
-
 workflows:
-  version: 2
-  workflow:
+  build:
     jobs:
-      - build
       - jvm/test:
-          name: test
           context:
             - Docker Hub
             - Nexus Credentials
-            - AWS OIDC
           executor:
             name: test_containers
-          resource_class: medium
-      - deploy_to_stage:
+            java_version: << pipeline.parameters.java_version >>
+          matrix:
+            parameters:
+              resource_class:
+                - medium
+
+      - jvm/publish_jar:
+          name: publish_jar
           context:
-            - "AWS Email Stage"
+            - Docker Hub
+            - Nexus Credentials
           requires:
-            - build
-            - test
+            - jvm/test
+          version: $CIRCLE_SHA1
+
+      - verify_zip:
+          <<: *container_config
+          steps:
+            - run:
+                name: Dir structure after build but before persisting
+                command: ls -R ~/project
