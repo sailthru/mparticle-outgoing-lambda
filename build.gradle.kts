@@ -1,8 +1,5 @@
-import com.sailthru.gradle.ProjectType
-
 plugins {
     id("java")
-    id("com.sailthru.gradle") version("v0.8.0")
 }
 
 group = "com.sailthru"
@@ -18,6 +15,10 @@ java {
     }
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
+}
+
+dependencyLocking {
+    lockAllConfigurations()
 }
 
 dependencies {
@@ -43,7 +44,6 @@ tasks.register<Zip>("buildZip") {
     }
 }
 
-sailthru {
-    type = ProjectType.CODE_ARTIFACT_ONLY
-    javaVersion = JavaVersion.VERSION_21
+tasks.assemble {
+    dependsOn(tasks.named("buildZip"))
 }
