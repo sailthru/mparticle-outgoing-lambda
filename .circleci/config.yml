@@ -46,6 +46,16 @@ references:
     docker:
       - image: cimg/openjdk:21.0
 
+jobs:
+  verify_zip:
+    <<: *container_config
+    steps:
+      - checkout
+      - jvm/setup_code_artifact
+      - run:
+          name: Dir structure after build but before persisting
+          command: ls -R ~/project
+
 workflows:
   build:
     jobs:
@@ -62,14 +72,7 @@ workflows:
 #            parameters:
 #              resource_class:
 #                - medium
-      - verify_zip:
-          <<: *container_config
-          steps:
-            - checkout
-            - jvm/setup_code_artifact
-            - run:
-                name: Dir structure after build but before persisting
-                command: ls -R ~/project
+      - verify_zip
 
       - jvm/publish_jar:
           name: publish_jar
