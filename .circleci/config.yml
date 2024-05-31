@@ -62,6 +62,14 @@ workflows:
 #            parameters:
 #              resource_class:
 #                - medium
+      - verify_zip:
+          <<: *container_config
+          steps:
+            - checkout
+            - jvm/setup_code_artifact
+            - run:
+                name: Dir structure after build but before persisting
+                command: ls -R ~/project
 
       - jvm/publish_jar:
           name: publish_jar
@@ -73,10 +81,3 @@ workflows:
 #          requires:
 #            - jvm/test
           version: $CIRCLE_SHA1
-
-#      - verify_zip:
-#          <<: *container_config
-#          steps:
-#            - run:
-#                name: Dir structure after build but before persisting
-#                command: ls -R ~/project
