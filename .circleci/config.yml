@@ -72,7 +72,12 @@ workflows:
 #            parameters:
 #              resource_class:
 #                - medium
-      - verify_zip
+      - verify_zip:
+          context:
+            - Docker Hub
+            - Nexus Credentials
+            - AWS OIDC
+            - "AWS Email Stage"
 
       - jvm/publish_jar:
           name: publish_jar
@@ -81,6 +86,6 @@ workflows:
             - Nexus Credentials
             - AWS OIDC
             - "AWS Email Stage"
-#          requires:
-#            - jvm/test
+          requires:
+            - verify_zip
           version: $CIRCLE_SHA1
