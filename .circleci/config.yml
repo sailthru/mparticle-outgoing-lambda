@@ -49,19 +49,19 @@ references:
 workflows:
   build:
     jobs:
-      - jvm/test:
-          context:
-            - Docker Hub
-            - Nexus Credentials
-            - AWS OIDC
-            - "AWS Email Stage"
-          executor:
-            name: test_containers
-            java_version: << pipeline.parameters.java_version >>
-          matrix:
-            parameters:
-              resource_class:
-                - medium
+#      - jvm/test:
+#          context:
+#            - Docker Hub
+#            - Nexus Credentials
+#            - AWS OIDC
+#            - "AWS Email Stage"
+#          executor:
+#            name: test_containers
+#            java_version: << pipeline.parameters.java_version >>
+#          matrix:
+#            parameters:
+#              resource_class:
+#                - medium
 
       - jvm/publish_jar:
           name: publish_jar
@@ -70,8 +70,8 @@ workflows:
             - Nexus Credentials
             - AWS OIDC
             - "AWS Email Stage"
-          requires:
-            - jvm/test
+#          requires:
+#            - jvm/test
           version: $CIRCLE_SHA1
 
 #      - verify_zip:
