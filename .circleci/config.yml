@@ -66,13 +66,17 @@ workflows:
           context:
             - Docker Hub
             - Nexus Credentials
-          requires:
-            - jvm/test
-          version: $CIRCLE_SHA1
-
-      - verify_zip:
-          <<: *container_config
           steps:
             - run:
                 name: Dir structure after build but before persisting
                 command: ls -R ~/project
+          requires:
+            - jvm/test
+          version: $CIRCLE_SHA1
+
+#      - verify_zip:
+#          <<: *container_config
+#          steps:
+#            - run:
+#                name: Dir structure after build but before persisting
+#                command: ls -R ~/project
