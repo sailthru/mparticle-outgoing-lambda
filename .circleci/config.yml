@@ -74,6 +74,7 @@ workflows:
           filters: *filter_branch_only
           context:
             - Docker Hub
+            - Nexus Credentials
           executor:
             name: test_containers
             java_version: << pipeline.parameters.java_version >>
@@ -83,6 +84,7 @@ workflows:
           filters: *filter_branch_only
           context:
             - Docker Hub
+            - Nexus Credentials
           requires:
             - test
           executor:
