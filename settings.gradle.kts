@@ -1,5 +1,3 @@
-rootProject.name = "mparticle-outgoing-lambda"
-
 pluginManagement {
     repositories {
         mavenLocal()
@@ -14,3 +12,4 @@ pluginManagement {
     }
 }
 
+rootProject.name = "mparticle-outgoing-lambda"
