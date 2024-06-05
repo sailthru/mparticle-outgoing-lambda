@@ -72,6 +72,8 @@ workflows:
       - jvm/test:
           name: test
           filters: *filter_branch_only
+          context:
+            - Docker Hub
           executor:
             name: test_containers
             java_version: << pipeline.parameters.java_version >>
@@ -79,6 +81,8 @@ workflows:
       - jvm/publish_lambda:
           name: publish
           filters: *filter_branch_only
+          context:
+            - Docker Hub
           requires:
             - test
           executor:
