@@ -18,7 +18,7 @@ parameters:
   java_version:
     description: String version of Java this project depends on.
     type: string
-    default: "21"
+    default: "21.0"
 
   deploy_stage:
     description: Flag indicating a stage deployment
