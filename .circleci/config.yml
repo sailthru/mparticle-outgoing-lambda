@@ -144,3 +144,4 @@ workflows:
             - create_lambda_release
           artifact_name: << pipeline.parameters.artifact_name >>
           lambda_name: << pipeline.parameters.lambda_name >>
+          version: $CIRCLE_TAG
