@@ -94,8 +94,9 @@ workflows:
           name: deploy_stage
           context:
             - Slack Notifications
-            - Kubernetes Stage     # to notify the right Slack channel
             - AWS S3 Lambda Stage
+          requires:
+            - publish
           artifact_name: << pipeline.parameters.artifact_name >>
           lambda_name: << pipeline.parameters.lambda_name >>
           version: $CIRCLE_SHA1
