@@ -32,7 +32,7 @@ executors:
       java_version:
         type: string
     docker:
-      - image: cimg/openjdk:<< parameter.java_version >>
+      - image: cimg/openjdk:<< parameters.java_version >>
         auth:
           username: $DOCKER_HUB_USERNAME
           password: $DOCKER_HUB_PASSWORD
