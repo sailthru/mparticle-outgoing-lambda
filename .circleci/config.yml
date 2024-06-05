@@ -92,6 +92,7 @@ workflows:
           version: $CIRCLE_SHA1
       - deploy/deploy_lambda:
           name: deploy_stage
+          filters: *filter_main_only
           context:
             - Slack Notifications
             - AWS S3 Lambda Stage
