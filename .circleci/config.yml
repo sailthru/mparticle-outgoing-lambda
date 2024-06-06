@@ -64,64 +64,6 @@ references:
     tags:
       only: /^v\d+$/
 
-jobs:
-  create_lambda_release:
-    description: >
-      "Tag" a Lambda. This job will copy the artifact to the S3 bucket to the current version tag (if applicable)
-      as well as the "latest" version.
-
-    executor: deploy/default
-
-    parameters:
-      artifact_name:
-        description: Name of the project, will be used for the S3 path.
-        type: string
-
-      source_version:
-        description: Source version. Defaults to the git revision.
-        type: string
-        # Note this is required to parameterize git revision (SHA1) as it is not accessible directly in an orb
-        default: << pipeline.git.revision >>
-
-      version:
-        description: >
-          Destination version. Defaults to the git tag. If equal to the source_version,
-          only copy to latest will be made.
-        type: string
-        default: << pipeline.git.tag >>
-
-      aws_role_arn:
-        type: string
-        description: AWS Role ARN to give CircleCI access to CodeArtifact
-        default: "arn:aws:iam::680305091011:role/circleci"
-
-      s3_bucket:
-        description: S3 bucket name
-        type: string
-        default: sailthru-lambda-packages
-
-      aws_region:
-        type: string
-        description: AWS region for the S3 bucket
-        default: us-east-1
-
-    steps:
-      - aws-cli/setup:
-          role_arn: << parameters.aws_role_arn >>
-          region: << parameters.aws_region >>
-      - run: |
-          echo copying << parameters.source_version >> to <<parameters.version >>
-      - unless:
-          condition:
-            equal: [ << parameters.source_version >>, << parameters.version >> ]
-          steps:
-            - aws-s3/copy:
-                from: s3://<< parameters.s3_bucket >>/<< parameters.artifact_name >>/<< parameters.source_version >>/package.zip
-                to: s3://<< parameters.s3_bucket >>/<< parameters.artifact_name >>/<< parameters.version >>/package.zip
-      - aws-s3/copy:
-          from: s3://<< parameters.s3_bucket >>/<< parameters.artifact_name >>/<< parameters.source_version >>/package.zip
-          to: s3://<< parameters.s3_bucket >>/<< parameters.artifact_name >>/latest/package.zip
-
 
 workflows:
   version: 2
@@ -206,7 +148,7 @@ workflows:
     unless:
       equal: [ << pipeline.parameters.prod_tag >>, "" ]
     jobs:
-      - create_lambda_release:
+      - deploy/create_lambda_release:
           name: create_lambda_release
           artifact_name: << pipeline.parameters.artifact_name >>
           source_version: << pipeline.git.revision >>
@@ -224,7 +166,7 @@ workflows:
 
   deploy_prod:
     jobs:
-      - create_lambda_release:
+      - deploy/create_lambda_release:
           name: create_lambda_release
           filters: *filter_tag_only
           artifact_name: << pipeline.parameters.artifact_name >>
