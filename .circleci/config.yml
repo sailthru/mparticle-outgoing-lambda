@@ -2,55 +2,70 @@ version: 2.1
 
 orbs:
   aws-cli: circleci/aws-cli@3.1.1
+  aws-s3: circleci/aws-s3@4.0.0
+  jvm: sailthru/jvm@0.3.0
+
+executors:
+  test_containers:
+    docker:
+      - image: cimg/openjdk:21.0
+        auth:
+          username: $DOCKER_HUB_USERNAME
+          password: $DOCKER_HUB_PASSWORD
 
 references:
+  workspace_root: &workspace_root
+    ~/project
+
+  persist_workspace: &persist_workspace
+    persist_to_workspace:
+      root: *workspace_root
+      paths: .
+
+  attach_workspace: &attach_workspace
+    attach_workspace:
+      at: *workspace_root
+
   container_config: &container_config
     environment:
       _JAVA_OPTIONS: "-Xmx3g"
       GRADLE_OPTS: "-Dorg.gradle.workers.max=2"
     docker:
-      - image: cimg/openjdk:17.0
+      - image: cimg/openjdk:21.0
+
+  filter_branch_only: &filter_branch_only
+    branches:
+      only: /.*/
+    tags:
+      ignore: /.*/
+
+  filter_main_only: &filter_main_only
+    branches:
+      only:
+        - main
+    tags:
+      ignore: /.*/
 
 jobs:
   build:
     <<: *container_config
     steps:
       - checkout
-      - restore_cache:
-          key: v1-gradle-cache-{{ checksum "build.gradle" }}
       - run:
           name: Install dependencies
-          command: ./gradlew build -x test
-      - save_cache:
-          paths:
-            - ~/.gradle/caches
-          key: v1-gradle-cache-{{ checksum "build.gradle" }}
+          command: ./gradlew -Pversion=${CIRCLE_SHA1} assemble
       - run:
           name: Assemble ZIP
           command: ./gradlew buildZip
-      - persist_to_workspace:
-          root: .
-          paths:
-            - .
-
-  test:
-    <<: *container_config
-    steps:
-      - checkout
-      - restore_cache:
-          key: v1-gradle-cache-{{ checksum "build.gradle" }}
-      - run:
-          name: Run tests
-          command: ./gradlew test
+      - *persist_workspace
 
   deploy_to_stage:
     <<: *container_config
     steps:
-      - attach_workspace:
-          at: .
+      - *attach_workspace
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-secret-access-key: AWS_ACCESS_KEY_SECRET
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
           aws-region: DEV_AWS_REGION
       - run:
           name: Check AWS version
@@ -60,30 +75,75 @@ jobs:
           name: Check Identity
           command: |
             aws sts get-caller-identity
+      - aws-s3/copy:
+          from: ~/project/build/distributions/mparticle-outgoing-lambda-SANDBOX.zip
+          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
+      - aws-s3/copy:
+          from: ~/project/build/distributions/mparticle-outgoing-lambda-SANDBOX.zip
+          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/latest/package.zip
       - run:
-          name: "Upload mparticle outgoing lambda to stage S3 buckets"
+          name: "Deploy mparticle outgoing package to Lambda to stage"
           command: |
-            function deploy_package() {
-              aws lambda update-function-code --function-name $1 --s3-bucket sailthru-lambda-packages-stage --s3-key $2 --publish
-            }
+            aws lambda update-function-code \
+              --function-name mparticle_outgoing_sqs_message_processor \
+              --s3-bucket sailthru-lambda-packages-stage \
+              --s3-key mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip \
+              --publish
 
-            S3_ROOT=s3://sailthru-lambda-packages-stage
-            S3_KEY=mparticle-outgoing-lambda/$CIRCLE_SHA1/package.zip
-
-            # Upload
-            aws s3 cp build/distributions/project.zip $S3_ROOT/$S3_KEY
-            
-            # deploy each S3 package to the lambdas - function name defined in infra
-            deploy_package mparticle_outgoing_sqs_message_processor $S3_KEY
+  deploy_to_prod:
+    <<: *container_config
+    steps:
+      - *attach_workspace
+      - aws-cli/setup:
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          aws-region: PROD_AWS_REGION
+      - run:
+          name: Check AWS version
+          command: aws --version
+      - run:
+          name: Check Identity
+          command: |
+            aws sts get-caller-identity
+      - aws-s3/copy:
+          from: ~/project/build/distributions/mparticle-outgoing-lambda-${CIRCLE_SHA1}.zip
+          to: s3://sailthru-lambda-packages-prod/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
+      - aws-s3/copy:
+          from: ~/project/build/distributions/mparticle-outgoing-lambda-${CIRCLE_SHA1}.zip
+          to: s3://sailthru-lambda-packages-prod/mparticle-outgoing-lambda/latest/package.zip
+      - run:
+          name: "Deploy mparticle outgoing package to Lambda to production"
+          command: |
+            aws lambda update-function-code \
+              --function-name mparticle_outgoing_sqs_message_processor \
+              --s3-bucket sailthru-lambda-packages-prod \
+              --s3-key mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip \
+              --publish
 
 workflows:
   version: 2
   workflow:
     jobs:
       - build
-      - test:
+      - jvm/test:
+          name: test
+          context:
+            - Docker Hub
+            - Nexus Credentials
+          executor:
+            name: test_containers
+          resource_class: medium
+      - deploy_to_stage:
+          context:
+            - "AWS Email Stage"
           requires:
             - build
-      - deploy_to_stage:
-          requires:
             - test
+          filters: *filter_branch_only
+      - deploy_to_prod:
+          context:
+            - "AWS S3 Lambda Prod"
+          requires:
+            - build
+            - test
+          filters: *filter_main_only
