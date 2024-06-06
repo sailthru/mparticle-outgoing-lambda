@@ -25,6 +25,10 @@ parameters:
     type: boolean
     default: false
 
+  prod_tag:
+    description: Test prod deployment using given tag
+    type: string
+    default: ""
 
 executors:
   test_containers:
@@ -61,7 +65,10 @@ references:
 workflows:
   version: 2
   build:
-    unless: << pipeline.parameters.deploy_stage >>
+    unless:
+      or:
+         - << pipeline.parameters.deploy_stage >>
+         - equal: [ << pipeline.parameters.prod_tag >>, "" ]
     jobs:
       - deploy/notify_start:
           name: Start notification
@@ -132,6 +139,27 @@ workflows:
           artifact_name: << pipeline.parameters.artifact_name >>
           lambda_name: << pipeline.parameters.lambda_name >>
           version: $CIRCLE_SHA1
+
+  deploy_prod_test:
+    unless:
+      equal: [ << pipeline.parameters.prod_tag >>, "" ]
+    jobs:
+      - deploy/create_lambda_release:
+          name: create_lambda_release
+          artifact_name: << pipeline.parameters.artifact_name >>
+          source_version: $CIRCLE_SHA1
+          version: << pipeline.parameters.prod_tag >>
+      - deploy/deploy_lambda:
+          name: deploy_prod
+          filters: *filter_tag_only
+          context:
+            - Slack Notifications
+            - AWS S3 Lambda Prod
+          requires:
+            - create_lambda_release
+          artifact_name: << pipeline.parameters.artifact_name >>
+          lambda_name: << pipeline.parameters.lambda_name >>
+          version: << pipeline.parameters.prod_tag >>
 
   deploy_prod:
     jobs:
