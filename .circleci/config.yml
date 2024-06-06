@@ -68,7 +68,9 @@ workflows:
     unless:
       or:
          - << pipeline.parameters.deploy_stage >>
-         - equal: [ << pipeline.parameters.prod_tag >>, "" ]
+         - matches:
+            pattern: ^$
+            value: << pipeline.parameters.prod_tag >>
     jobs:
       - deploy/notify_start:
           name: Start notification
