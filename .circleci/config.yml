@@ -1,38 +1,44 @@
 version: 2.1
 
 orbs:
-  aws-cli: circleci/aws-cli@3.1.1
-  aws-s3: circleci/aws-s3@4.0.0
-  jvm: sailthru/jvm@0.3.0
+  jvm: sailthru/jvm@0.4.1
+  deploy: sailthru/deploy@0.8.0
+
+parameters:
+  artifact_name:
+    description: Project name, used to find the final executable and the S3 folder
+    type: string
+    default: mparticle-outgoing-lambda
+
+  lambda_name:
+    description: Name of the Lambda.
+    type: string
+    default: mparticle_outgoing_sqs_message_processor
+
+  java_version:
+    description: String version of Java this project depends on.
+    type: string
+    default: "21.0"
+
+  deploy_stage:
+    description: Flag indicating a stage deployment
+    type: boolean
+    default: false
+
 
 executors:
   test_containers:
+    parameters:
+      java_version:
+        type: string
     docker:
-      - image: cimg/openjdk:21.0
+      - image: cimg/openjdk:<< parameters.java_version >>
         auth:
           username: $DOCKER_HUB_USERNAME
           password: $DOCKER_HUB_PASSWORD
 
+
 references:
-  workspace_root: &workspace_root
-    ~/project
-
-  persist_workspace: &persist_workspace
-    persist_to_workspace:
-      root: *workspace_root
-      paths: .
-
-  attach_workspace: &attach_workspace
-    attach_workspace:
-      at: *workspace_root
-
-  container_config: &container_config
-    environment:
-      _JAVA_OPTIONS: "-Xmx3g"
-      GRADLE_OPTS: "-Dorg.gradle.workers.max=2"
-    docker:
-      - image: cimg/openjdk:21.0
-
   filter_branch_only: &filter_branch_only
     branches:
       only: /.*/
@@ -46,104 +52,101 @@ references:
     tags:
       ignore: /.*/
 
-jobs:
-  build:
-    <<: *container_config
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: ./gradlew -Pversion=${CIRCLE_SHA1} assemble
-      - run:
-          name: Assemble ZIP
-          command: ./gradlew buildZip
-      - *persist_workspace
-
-  deploy_to_stage:
-    <<: *container_config
-    steps:
-      - *attach_workspace
-      - aws-cli/setup:
-          aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
-          aws-region: DEV_AWS_REGION
-      - run:
-          name: Check AWS version
-          command: |
-            aws --version
-      - run:
-          name: Check Identity
-          command: |
-            aws sts get-caller-identity
-      - aws-s3/copy:
-          from: ~/project/build/distributions/mparticle-outgoing-lambda-SANDBOX.zip
-          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
-      - aws-s3/copy:
-          from: ~/project/build/distributions/mparticle-outgoing-lambda-SANDBOX.zip
-          to: s3://sailthru-lambda-packages-stage/mparticle-outgoing-lambda/latest/package.zip
-      - run:
-          name: "Deploy mparticle outgoing package to Lambda to stage"
-          command: |
-            aws lambda update-function-code \
-              --function-name mparticle_outgoing_sqs_message_processor \
-              --s3-bucket sailthru-lambda-packages-stage \
-              --s3-key mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip \
-              --publish
-
-  deploy_to_prod:
-    <<: *container_config
-    steps:
-      - *attach_workspace
-      - aws-cli/setup:
-          aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
-          aws-region: PROD_AWS_REGION
-      - run:
-          name: Check AWS version
-          command: aws --version
-      - run:
-          name: Check Identity
-          command: |
-            aws sts get-caller-identity
-      - aws-s3/copy:
-          from: ~/project/build/distributions/mparticle-outgoing-lambda-SANDBOX.zip
-          to: s3://sailthru-lambda-packages/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
-      - aws-s3/copy:
-          from: ~/project/build/distributions/mparticle-outgoing-lambda-SANDBOX.zip
-          to: s3://sailthru-lambda-packages/mparticle-outgoing-lambda/latest/package.zip
-      - run:
-          name: "Deploy mparticle outgoing package to Lambda to production"
-          command: |
-            aws lambda update-function-code \
-              --function-name mparticle_outgoing_sqs_message_processor \
-              --s3-bucket sailthru-lambda-packages \
-              --s3-key mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip \
-              --publish
+  filter_tag_only: &filter_tag_only
+    branches:
+      ignore: /.*/
+    tags:
+      only: /^v\d+$/
 
 workflows:
   version: 2
-  workflow:
+  build:
+    unless: << pipeline.parameters.deploy_stage >>
     jobs:
-      - build
+      - deploy/notify_start:
+          name: Start notification
+          filters: *filter_main_only
+          context:
+            - Slack Notifications
       - jvm/test:
           name: test
+          filters: *filter_branch_only
           context:
             - Docker Hub
-            - Nexus Credentials
           executor:
             name: test_containers
+            java_version: << pipeline.parameters.java_version >>
           resource_class: medium
-      - deploy_to_stage:
-          context:
-            - "AWS Email Stage"
-          requires:
-            - build
-            - test
+      - jvm/publish_lambda:
+          name: publish
           filters: *filter_branch_only
-      - deploy_to_prod:
           context:
-            - "AWS S3 Lambda Prod"
+            - Docker Hub
           requires:
-            - build
             - test
+          executor:
+            name: jvm/default
+            tag: << pipeline.parameters.java_version >>
+          artifact_name: << pipeline.parameters.artifact_name >>
+          version: $CIRCLE_SHA1
+      - deploy/deploy_lambda:
+          name: deploy_stage
           filters: *filter_main_only
+          context:
+            - Slack Notifications
+            - AWS S3 Lambda Stage
+          requires:
+            - publish
+          artifact_name: << pipeline.parameters.artifact_name >>
+          lambda_name: << pipeline.parameters.lambda_name >>
+          version: $CIRCLE_SHA1
+      - deploy/notify_hold:
+          name: Notify release approval
+          filters: *filter_main_only
+          context:
+            - Slack Notifications
+          requires:
+            - deploy_stage
+      - release_hold:
+          name: Approval to prod
+          filters: *filter_main_only
+          type: approval
+          requires:
+            - Notify release approval
+      - deploy/create_release_tag:
+          name: Create release
+          filters: *filter_main_only
+          context:
+            - Github
+          requires:
+            - Approval to prod
+
+  deploy_stage:
+    when: << pipeline.parameters.deploy_stage >>
+    jobs:
+      - deploy/deploy_lambda:
+          name: deploy_stage
+          context:
+            - Slack Notifications
+            - AWS S3 Lambda Stage
+          artifact_name: << pipeline.parameters.artifact_name >>
+          lambda_name: << pipeline.parameters.lambda_name >>
+          version: $CIRCLE_SHA1
+
+  deploy_prod:
+    jobs:
+      - deploy/create_lambda_release:
+          name: create_lambda_release
+          filters: *filter_tag_only
+          artifact_name: << pipeline.parameters.artifact_name >>
+      - deploy/deploy_lambda:
+          name: deploy_prod
+          filters: *filter_tag_only
+          context:
+            - Slack Notifications
+            - AWS S3 Lambda Prod
+          requires:
+            - create_lambda_release
+          artifact_name: << pipeline.parameters.artifact_name >>
+          lambda_name: << pipeline.parameters.lambda_name >>
+          version: $CIRCLE_TAG
