@@ -106,10 +106,10 @@ jobs:
           command: |
             aws sts get-caller-identity
       - aws-s3/copy:
-          from: ~/project/build/distributions/mparticle-outgoing-lambda-${CIRCLE_SHA1}.zip
+          from: ~/project/build/distributions/mparticle-outgoing-lambda-SANDBOX.zip
           to: s3://sailthru-lambda-packages-prod/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
       - aws-s3/copy:
-          from: ~/project/build/distributions/mparticle-outgoing-lambda-${CIRCLE_SHA1}.zip
+          from: ~/project/build/distributions/mparticle-outgoing-lambda-SANDBOX.zip
           to: s3://sailthru-lambda-packages-prod/mparticle-outgoing-lambda/latest/package.zip
       - run:
           name: "Deploy mparticle outgoing package to Lambda to production"
