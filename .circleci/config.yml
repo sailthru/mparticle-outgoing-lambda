@@ -58,7 +58,6 @@ references:
     tags:
       only: /^v\d+$/
 
-
 workflows:
   version: 2
   build:
