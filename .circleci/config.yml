@@ -3,6 +3,8 @@ version: 2.1
 orbs:
   jvm: sailthru/jvm@0.4.1
   deploy: sailthru/deploy@0.8.0
+  aws-cli: circleci/aws-cli@4.1.2
+  aws-s3: circleci/aws-s3@4.0.0
 
 parameters:
   artifact_name:
