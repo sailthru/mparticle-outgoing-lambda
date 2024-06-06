@@ -224,7 +224,7 @@ workflows:
 
   deploy_prod:
     jobs:
-      - deploy/create_lambda_release:
+      - create_lambda_release:
           name: create_lambda_release
           filters: *filter_tag_only
           artifact_name: << pipeline.parameters.artifact_name >>
