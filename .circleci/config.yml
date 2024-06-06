@@ -209,7 +209,7 @@ workflows:
       - create_lambda_release:
           name: create_lambda_release
           artifact_name: << pipeline.parameters.artifact_name >>
-          source_version: $CIRCLE_SHA1
+          source_version: << pipeline.git.revision >>
           version: << pipeline.parameters.prod_tag >>
       - deploy/deploy_lambda:
           name: deploy_prod
@@ -228,8 +228,8 @@ workflows:
           name: create_lambda_release
           filters: *filter_tag_only
           artifact_name: << pipeline.parameters.artifact_name >>
-          source_version: $CIRCLE_SHA1
-          version: $CIRCLE_TAG
+          source_version: << pipeline.git.revision >>
+          version: << pipeline.git.tag >>
       - deploy/deploy_lambda:
           name: deploy_prod
           filters: *filter_tag_only
