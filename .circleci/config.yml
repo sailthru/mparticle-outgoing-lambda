@@ -107,16 +107,16 @@ jobs:
             aws sts get-caller-identity
       - aws-s3/copy:
           from: ~/project/build/distributions/mparticle-outgoing-lambda-SANDBOX.zip
-          to: s3://sailthru-lambda-packages-prod/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
+          to: s3://sailthru-lambda-packages/mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip
       - aws-s3/copy:
           from: ~/project/build/distributions/mparticle-outgoing-lambda-SANDBOX.zip
-          to: s3://sailthru-lambda-packages-prod/mparticle-outgoing-lambda/latest/package.zip
+          to: s3://sailthru-lambda-packages/mparticle-outgoing-lambda/latest/package.zip
       - run:
           name: "Deploy mparticle outgoing package to Lambda to production"
           command: |
             aws lambda update-function-code \
               --function-name mparticle_outgoing_sqs_message_processor \
-              --s3-bucket sailthru-lambda-packages-prod \
+              --s3-bucket sailthru-lambda-packages \
               --s3-key mparticle-outgoing-lambda/${CIRCLE_SHA1}/package.zip \
               --publish
 
