@@ -27,11 +27,11 @@ public class MessageProcessor {
         try {
             final MParticleMessage message = getSerializer().deserialize(rawMessage, MParticleMessage.class);
 
-            if(StringUtils.isEmpty(message.getAuthenticationKey())) {
+            if (StringUtils.isEmpty(message.getAuthenticationKey())) {
                 throw new IllegalArgumentException("Authentication key not provided.");
             }
 
-            if(StringUtils.isEmpty(message.getAuthenticationSecret())) {
+            if (StringUtils.isEmpty(message.getAuthenticationSecret())) {
                 throw new IllegalArgumentException("Authentication secret not provided.");
             }
 
@@ -42,7 +42,7 @@ public class MessageProcessor {
     }
 
     private MParticleClient getMParticleClient() {
-        if(mParticleClient == null) {
+        if (mParticleClient == null) {
             mParticleClient = new MParticleClient();
         }
 
@@ -50,7 +50,7 @@ public class MessageProcessor {
     }
 
     private MessageSerializer getSerializer() {
-        if(messageSerializer == null) {
+        if (messageSerializer == null) {
             messageSerializer = new MessageSerializer();
         }
 
