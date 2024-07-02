@@ -10,6 +10,11 @@ sailthru {
     javaVersion = JavaVersion.VERSION_21
 }
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
 
 dependencies {
     implementation(platform("software.amazon.awssdk:bom:2.25.60"))

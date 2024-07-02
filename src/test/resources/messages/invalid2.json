@@ -1,0 +1,11 @@
+{
+  "authenticationKey": "AuthKey123",
+  "authenticationSecret": "",
+  "eventName": "email_open",
+  "eventType": "OTHER",
+  "additionalData": {
+    "Key1": "Value1",
+    "Key2": "Value2"
+  },
+  "profileEmail": "john.cooper@sailthru.com"
+}
