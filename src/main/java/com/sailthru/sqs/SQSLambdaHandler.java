@@ -26,7 +26,10 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
             try {
                 getProcessor().process(sqsMessage);
             } catch (RetryLaterException e) {
-                LOGGER.error("Exception occurred processing message id {} because of exception: {}.  Will retry.", sqsMessage.getMessageId(), e.getMessage(), e);
+                LOGGER.error("Exception occurred processing message id {} because of exception: {}.  Will retry.",
+                        sqsMessage.getMessageId(),
+                        e.getMessage(), e);
+
                 batchItemFailures.add(new SQSBatchResponse.BatchItemFailure(sqsMessage.getMessageId()));
             }
         });
@@ -35,7 +38,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     }
 
     private MessageProcessor getProcessor() {
-        if(messageProcessor == null) {
+        if (messageProcessor == null) {
             messageProcessor = new MessageProcessor();
         }
 

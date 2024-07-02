@@ -43,12 +43,8 @@ public class MParticleClient {
         }
     }
 
-    private boolean shouldRetryLater(Response<Void> response) {
-        return false;
-    }
-
     private EventsApi getEventsApi(final String apiKey, final String apiSecret) {
-        ApiClient apiClient = new ApiClient(apiKey, apiSecret);
+        final ApiClient apiClient = new ApiClient(apiKey, apiSecret);
 
         apiClient.getAdapterBuilder().baseUrl(BASE_URL);
 
