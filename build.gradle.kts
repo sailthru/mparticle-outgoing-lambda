@@ -2,7 +2,7 @@ import com.sailthru.gradle.ProjectType
 
 plugins {
     id("java")
-    id("com.sailthru.gradle") version("v0.9.0")
+    id("com.sailthru.gradle") version ("v0.9.0")
 }
 
 sailthru {

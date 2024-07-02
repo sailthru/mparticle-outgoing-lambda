@@ -32,7 +32,7 @@ public class MParticleClient {
             final Response<Void> response = singleResult.execute();
             LOGGER.info(format("Received response: {}", response));
 
-            if(!response.isSuccessful()) {
+            if (!response.isSuccessful()) {
                 throw new RetryLaterException();
             }
 
