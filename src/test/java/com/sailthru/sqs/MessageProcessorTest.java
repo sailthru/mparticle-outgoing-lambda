@@ -44,7 +44,8 @@ class MessageProcessorTest {
     void givenNoAuthenticationKeyProvidedThenIllegalArgumentExceptionShouldBeThrown() {
         givenMessageWithoutAuthenticationKey();
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> testInstance.process(mockSQSMessage));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> testInstance.process(mockSQSMessage));
         assertEquals("Authentication key not provided.", exception.getMessage());
 
     }
@@ -53,7 +54,8 @@ class MessageProcessorTest {
     void givenNoAuthenticationSecretProvidedThenIllegalArgumentExceptionShouldBeThrown() {
         givenMessageWithoutAuthenticationSecret();
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> testInstance.process(mockSQSMessage));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> testInstance.process(mockSQSMessage));
         assertEquals("Authentication secret not provided.", exception.getMessage());
 
     }
