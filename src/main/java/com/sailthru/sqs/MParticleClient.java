@@ -16,7 +16,7 @@ import java.io.IOException;
 
 public class MParticleClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
-    private static final String BASE_URL = "https://s2s.mparticle.com/";
+    private static final String BASE_URL = "https://s2s.us2.mparticle.com/v2/";
 
     public void submit(final MParticleMessage message) throws RetryLaterException {
 
@@ -29,7 +29,7 @@ public class MParticleClient {
         try {
             final Response<Void> response = singleResult.execute();
             LOGGER.info("Received response code: {} and response error body: {}",
-                    response.code(), response.errorBody());
+                    response.code(), response.errorBody().string());
 
             if (!response.isSuccessful()) {
                 throw new RetryLaterException();
