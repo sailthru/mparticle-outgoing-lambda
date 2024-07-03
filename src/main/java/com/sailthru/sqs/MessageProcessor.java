@@ -1,6 +1,7 @@
 package com.sailthru.sqs;
 
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
+import com.sailthru.sqs.exception.NoRetryException;
 import com.sailthru.sqs.exception.RetryLaterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,12 @@ public class MessageProcessor {
     private MessageSerializer messageSerializer;
     private MParticleClient mParticleClient;
 
-    public void process(final SQSEvent.SQSMessage sqsMessage) throws RetryLaterException {
+    public MessageProcessor() {
+        messageSerializer = new MessageSerializer();
+        mParticleClient = new MParticleClient();
+    }
+
+    public void process(final SQSEvent.SQSMessage sqsMessage) throws RetryLaterException, NoRetryException {
         final String rawMessage = sqsMessage.getBody();
         LOGGER.debug("Received message: {}", rawMessage);
 
@@ -23,37 +29,29 @@ public class MessageProcessor {
         getMParticleClient().submit(message);
     }
 
-    private MParticleMessage parseAndValidateMessage(final String rawMessage) {
+    private MParticleMessage parseAndValidateMessage(final String rawMessage) throws NoRetryException {
         try {
             final MParticleMessage message = getSerializer().deserialize(rawMessage, MParticleMessage.class);
 
             if (StringUtils.isEmpty(message.getAuthenticationKey())) {
-                throw new IllegalArgumentException("Authentication key not provided.");
+                throw new NoRetryException("Authentication key not provided.");
             }
 
             if (StringUtils.isEmpty(message.getAuthenticationSecret())) {
-                throw new IllegalArgumentException("Authentication secret not provided.");
+                throw new NoRetryException("Authentication secret not provided.");
             }
 
             return message;
         } catch (IOException e) {
-            throw new IllegalArgumentException(String.format("Could not deserialize message: %s", rawMessage), e);
+            throw new NoRetryException(String.format("Could not deserialize message: %s", rawMessage), e);
         }
     }
 
     private MParticleClient getMParticleClient() {
-        if (mParticleClient == null) {
-            mParticleClient = new MParticleClient();
-        }
-
         return mParticleClient;
     }
 
     private MessageSerializer getSerializer() {
-        if (messageSerializer == null) {
-            messageSerializer = new MessageSerializer();
-        }
-
         return messageSerializer;
     }
 

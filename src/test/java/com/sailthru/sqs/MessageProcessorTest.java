@@ -1,6 +1,7 @@
 package com.sailthru.sqs;
 
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
+import com.sailthru.sqs.exception.NoRetryException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,19 +42,19 @@ class MessageProcessorTest {
     }
 
     @Test
-    void givenNoAuthenticationKeyProvidedThenIllegalArgumentExceptionShouldBeThrown() throws Exception  {
+    void givenNoAuthenticationKeyProvidedThenCorrectExceptionShouldBeThrown() throws Exception  {
         givenMessageWithoutAuthenticationKey();
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NoRetryException exception = assertThrows(NoRetryException.class,
                 () -> testInstance.process(mockSQSMessage));
         assertEquals("Authentication key not provided.", exception.getMessage());
     }
 
     @Test
-    void givenNoAuthenticationSecretProvidedThenIllegalArgumentExceptionShouldBeThrown() throws Exception  {
+    void givenNoAuthenticationSecretProvidedThenCorrectExceptionShouldBeThrown() throws Exception  {
         givenMessageWithoutAuthenticationSecret();
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NoRetryException exception = assertThrows(NoRetryException.class,
                 () -> testInstance.process(mockSQSMessage));
         assertEquals("Authentication secret not provided.", exception.getMessage());
     }
