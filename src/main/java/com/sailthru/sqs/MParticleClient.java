@@ -14,8 +14,6 @@ import retrofit2.Response;
 
 import java.io.IOException;
 
-import static java.lang.String.format;
-
 public class MParticleClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
     private static final String BASE_URL = "https://s2s.mparticle.com/";
@@ -30,14 +28,14 @@ public class MParticleClient {
 
         try {
             final Response<Void> response = singleResult.execute();
-            LOGGER.info(format("Received response code: {} and response error body: {}",
-                    response.code(), response.errorBody()));
+            LOGGER.info("Received response code: {} and response error body: {}",
+                    response.code(), response.errorBody());
 
             if (!response.isSuccessful()) {
                 throw new RetryLaterException();
             }
 
-            LOGGER.info(format("Successfully sent message: {}", message));
+            LOGGER.info("Successfully sent message: {}", message);
         } catch (IOException e) {
             //Retry for all IOExceptions
             throw new RetryLaterException(e);
