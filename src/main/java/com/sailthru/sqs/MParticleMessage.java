@@ -57,4 +57,16 @@ public class MParticleMessage {
     public void setProfileEmail(String profileEmail) {
         this.profileEmail = profileEmail;
     }
+
+    @Override
+    public String toString() {
+        return "MParticleMessage{" +
+                "authenticationKey='" + authenticationKey + '\'' +
+                ", authenticationSecret='" + authenticationSecret + '\'' +
+                ", eventName='" + eventName + '\'' +
+                ", eventType='" + eventType + '\'' +
+                ", additionalData=" + additionalData +
+                ", profileEmail='" + profileEmail + '\'' +
+                '}';
+    }
 }

@@ -16,7 +16,7 @@ import java.io.IOException;
 
 public class MParticleClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
-    private static final String BASE_URL = "https://s2s.us2.mparticle.com/v2/";
+    private static final String BASE_URL = "https://inbound.mparticle.com/s2s/v2/events";
 
     public void submit(final MParticleMessage message) throws RetryLaterException {
 
