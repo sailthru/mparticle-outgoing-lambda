@@ -1,8 +1,11 @@
 package com.sailthru.sqs;
 
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
+import com.sailthru.sqs.exception.AuthenticationKeyNotProvidedException;
+import com.sailthru.sqs.exception.AuthenticationSecretNotProvidedException;
 import com.sailthru.sqs.exception.NoRetryException;
 import com.sailthru.sqs.exception.RetryLaterException;
+import com.sailthru.sqs.exception.UnparseablePayloadException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.utils.StringUtils;
@@ -34,16 +37,16 @@ public class MessageProcessor {
             final MParticleMessage message = getSerializer().deserialize(rawMessage, MParticleMessage.class);
 
             if (StringUtils.isEmpty(message.getAuthenticationKey())) {
-                throw new NoRetryException("Authentication key not provided.");
+                throw new AuthenticationKeyNotProvidedException("Authentication key not provided.");
             }
 
             if (StringUtils.isEmpty(message.getAuthenticationSecret())) {
-                throw new NoRetryException("Authentication secret not provided.");
+                throw new AuthenticationSecretNotProvidedException("Authentication secret not provided.");
             }
 
             return message;
         } catch (IOException e) {
-            throw new NoRetryException(String.format("Could not deserialize message: %s", rawMessage), e);
+            throw new UnparseablePayloadException(String.format("Could not deserialize message: %s", rawMessage), e);
         }
     }
 

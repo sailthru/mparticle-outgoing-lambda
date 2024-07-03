@@ -24,7 +24,7 @@ public class MParticleClient {
 
         final EventsApi eventsApi = getEventsApi(message.getAuthenticationKey(), message.getAuthenticationSecret());
 
-        LOGGER.info("Attempting to send batch: {} for message: {}", batch, message);
+        LOGGER.debug("Attempting to send batch: {} for message: {}", batch, message);
 
         final Call<Void> singleResult = eventsApi.uploadEvents(batch);
 
