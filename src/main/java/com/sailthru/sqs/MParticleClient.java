@@ -18,7 +18,7 @@ import static java.lang.String.format;
 
 public class MParticleClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
-    private static final String BASE_URL = "https://s2s.us2.mparticle.com/v2/";
+    private static final String BASE_URL = "https://s2s.mparticle.com/";
 
     public void submit(final MParticleMessage message) throws RetryLaterException {
 
@@ -30,7 +30,8 @@ public class MParticleClient {
 
         try {
             final Response<Void> response = singleResult.execute();
-            LOGGER.info(format("Received response: {}", response));
+            LOGGER.info(format("Received response code: {} and response error body: {}",
+                    response.code(), response.errorBody()));
 
             if (!response.isSuccessful()) {
                 throw new RetryLaterException();
@@ -53,7 +54,7 @@ public class MParticleClient {
 
     private Batch prepareBatch(final MParticleMessage message) {
         final Batch batch = new Batch();
-        batch.environment(Batch.Environment.DEVELOPMENT);
+        batch.environment(Batch.Environment.PRODUCTION);
         batch.userIdentities(new UserIdentities()
                 .email(message.getProfileEmail())
         );
