@@ -52,7 +52,7 @@ public class MParticleClient {
 
     private Batch prepareBatch(final MParticleMessage message) {
         final Batch batch = new Batch();
-        batch.environment(Batch.Environment.PRODUCTION);
+        batch.environment(Batch.Environment.DEVELOPMENT);
         batch.userIdentities(new UserIdentities()
                 .email(message.getProfileEmail())
         );
