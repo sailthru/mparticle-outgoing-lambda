@@ -31,7 +31,7 @@ public class MParticleClient {
         try {
             final Response<Void> response = singleResult.execute();
             LOGGER.info("Received response code: {} and response error body: {}",
-                    response.code(), response.errorBody().string());
+                    response.code(), response.errorBody());
 
             if (!response.isSuccessful()) {
                 throw new RetryLaterException();
