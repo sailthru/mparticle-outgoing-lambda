@@ -120,13 +120,6 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         }
     }
 
-    private void handleRetryLaterException(RetryLaterException e, SQSEvent.SQSMessage sqsMessage,
-                                           List<FailedRequest> failedRequestList,
-                                           List<SQSBatchResponse.BatchItemFailure> batchItemFailures) {
-        FailedRequest failedRequest = e.getFailedRequest() != null ? e.getFailedRequest() : new FailedRequest(-1, -1);
-        failedRequestList.add(failedRequest.setReceiptHandle(sqsMessage.getReceiptHandle()));
-    }
-
     private MessageProcessor getProcessor() {
         return messageProcessor;
     }
