@@ -13,6 +13,7 @@ import retrofit2.Call;
 import retrofit2.Response;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class MParticleClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
@@ -33,7 +34,22 @@ public class MParticleClient {
             LOGGER.info("Received response code: {}", response.code());
 
             if (!response.isSuccessful()) {
-                throw new RetryLaterException();
+                int statusCode = response.code();
+                int retryAfter = 0;
+
+                if (statusCode == 429) {
+                    String retryAfterHeader = response.headers().get("Retry-After");
+                    if (retryAfterHeader != null) {
+                        try {
+                            retryAfter = Integer.parseInt(retryAfterHeader);
+                        } catch (NumberFormatException e) {
+                            LOGGER.warn("Invalid Retry-After header value: {}. Defaulting to 0.", retryAfterHeader);
+                        }
+                    } else {
+                        LOGGER.warn("Missing Retry-After header for status code 429. Defaulting to 0.");
+                    }
+                }
+                throw new RetryLaterException(statusCode, retryAfter);
             }
 
             LOGGER.info("Successfully sent message: {}", message);
