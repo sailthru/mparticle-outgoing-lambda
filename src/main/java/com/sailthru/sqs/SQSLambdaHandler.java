@@ -11,13 +11,14 @@ import com.sailthru.sqs.exception.NoRetryException;
 import com.sailthru.sqs.exception.RetryLaterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchResponse> {
-    private static final String QUEUE_URL = System.getenv("QUEUE_URL"); // Ensure this is set in your environment
+    private static String QUEUE_URL = null;
     private static final int DEFAULT_MIN_VALUE = 120;
     private static final int DEFAULT_MAX_VALUE = 300;
     private static final SqsClient sqsClient = SqsClient.builder().build();
@@ -40,6 +41,9 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     public SQSBatchResponse handleRequest(final SQSEvent event, final Context context) {
         final List<SQSBatchResponse.BatchItemFailure> batchItemFailures = new ArrayList<>();
         final List<FailedRequest> failedRequestList = new ArrayList<>();
+        final String QUEUE_NAME = "queue-name";
+
+        QUEUE_URL = getQueueUrl(QUEUE_NAME);
 
         event.getRecords().forEach(sqsMessage -> {
             try {
@@ -118,6 +122,13 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
             LOGGER.error("Invalid environment variable for {}: {}. Using default value: {}", varName, System.getenv(varName), defaultValue);
             return defaultValue;
         }
+    }
+
+    private String getQueueUrl(String queueName) {
+        return sqsClient.getQueueUrl(GetQueueUrlRequest.builder()
+                        .queueName(queueName)
+                        .build())
+                .queueUrl();
     }
 
     private MessageProcessor getProcessor() {
