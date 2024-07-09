@@ -6,6 +6,7 @@ import com.mparticle.model.Batch;
 import com.mparticle.model.CustomEvent;
 import com.mparticle.model.CustomEventData;
 import com.mparticle.model.UserIdentities;
+import com.sailthru.sqs.exception.NoRetryException;
 import com.sailthru.sqs.exception.RetryLaterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,7 @@ public class MParticleClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
     private static final String BASE_URL = "https://inbound.mparticle.com/s2s/v2/";
 
-    public void submit(final MParticleMessage message) throws RetryLaterException {
+    public void submit(final MParticleMessage message) throws RetryLaterException, NoRetryException {
 
         final Batch batch = prepareBatch(message);
 
@@ -48,8 +49,12 @@ public class MParticleClient {
                     } else {
                         LOGGER.warn("Missing Retry-After header for status code 429. Defaulting to 0.");
                     }
+                    throw new RetryLaterException(statusCode, retryAfter);
+                } else if (statusCode >= 500 && statusCode < 600) {
+                    throw new RetryLaterException(statusCode, retryAfter);
                 }
-                throw new RetryLaterException(statusCode, retryAfter);
+                //No Retry for all status code except 429 and status code between 500 and 600
+                throw new NoRetryException(response.message());
             }
 
             LOGGER.info("Successfully sent message: {}", message);
