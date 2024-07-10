@@ -19,6 +19,7 @@ import java.util.Objects;
 public class MParticleClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
     private static final String BASE_URL = "https://inbound.mparticle.com/s2s/v2/";
+    private static final String retryAfterHeaderKey = "Retry-After";
 
     public void submit(final MParticleMessage message) throws RetryLaterException, NoRetryException {
 
@@ -39,7 +40,7 @@ public class MParticleClient {
                 int retryAfter = 0;
 
                 if (statusCode == 429) {
-                    String retryAfterHeader = response.headers().get("Retry-After");
+                    String retryAfterHeader = response.headers().get(retryAfterHeaderKey);
                     if (retryAfterHeader != null) {
                         try {
                             retryAfter = Integer.parseInt(retryAfterHeader);
@@ -53,7 +54,7 @@ public class MParticleClient {
                 } else if (statusCode >= 500 && statusCode < 600) {
                     throw new RetryLaterException(statusCode, retryAfter);
                 }
-                //No Retry for all status code except 429 and status code between 500 and 600
+                //Do not retry for all status code except 429 and status code between 500 and 600
                 throw new NoRetryException(response.message());
             }
 
@@ -64,7 +65,7 @@ public class MParticleClient {
         }
     }
 
-    private EventsApi getEventsApi(final String apiKey, final String apiSecret) {
+    protected EventsApi getEventsApi(final String apiKey, final String apiSecret) {
         final ApiClient apiClient = new ApiClient(apiKey, apiSecret);
 
         apiClient.getAdapterBuilder().baseUrl(BASE_URL);

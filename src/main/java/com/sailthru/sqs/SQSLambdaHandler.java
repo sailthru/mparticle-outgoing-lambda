@@ -19,20 +19,20 @@ import java.util.List;
 import java.util.Random;
 
 public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchResponse> {
+    private static String QUEUE_NAME = "";
     private String QUEUE_URL = "";
     private SqsClient sqsClient;
-    private int minValue;
-    private int maxValue;
+    private static int minValue;
+    private static int maxValue;
     private static final Logger LOGGER = LoggerFactory.getLogger(SQSLambdaHandler.class);
 
     private MessageProcessor messageProcessor;
 
     static {
-        setupStaticVariables();
+        setupEnvVariables();
     }
 
     public SQSLambdaHandler() {
-        setupEnvVariables();
         this.messageProcessor = new MessageProcessor();
         this.sqsClient = SqsClient.builder().region(Region.US_EAST_1).build();
     }
@@ -47,7 +47,6 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     public SQSBatchResponse handleRequest(final SQSEvent event, final Context context) {
         final List<SQSBatchResponse.BatchItemFailure> batchItemFailures = new ArrayList<>();
         final List<FailedRequest> failedRequestList = new ArrayList<>();
-        final String QUEUE_NAME = "stage-mparticle_outgoing_sqs_queue.fifo";
 
         QUEUE_URL = getQueueUrl(QUEUE_NAME);
 
@@ -106,23 +105,23 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         return new Random().nextInt((maxValue - minValue) + 1) + minValue;
     }
 
-    private void setupEnvVariables() {
+    private static void setupEnvVariables() {
         int DEFAULT_MIN_VALUE = 120;
-        minValue = getEnvVarAsInt("MIN_VALUE", DEFAULT_MIN_VALUE);
         int DEFAULT_MAX_VALUE = 300;
+        QUEUE_NAME = "stage-mparticle_outgoing_sqs_queue.fifo";
+
+        final String levelString = System.getenv("LOG_LEVEL");
+        if (levelString != null) {
+            System.setProperty(SimpleLogger.DEFAULT_LOG_LEVEL_KEY, levelString);
+        }
+
+        minValue = getEnvVarAsInt("MIN_VALUE", DEFAULT_MIN_VALUE);
         maxValue = getEnvVarAsInt("MAX_VALUE", DEFAULT_MAX_VALUE);
 
         if (minValue > maxValue) {
             LOGGER.error("MIN_VALUE is greater than MAX_VALUE, adjusting to default values");
             minValue = DEFAULT_MIN_VALUE;
             maxValue = DEFAULT_MAX_VALUE;
-        }
-    }
-
-    private static void setupStaticVariables() {
-        final String levelString = System.getenv("LOG_LEVEL");
-        if (levelString != null) {
-            System.setProperty(SimpleLogger.DEFAULT_LOG_LEVEL_KEY, levelString);
         }
     }
 
