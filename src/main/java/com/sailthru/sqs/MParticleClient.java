@@ -14,12 +14,12 @@ import retrofit2.Call;
 import retrofit2.Response;
 
 import java.io.IOException;
-import java.util.Objects;
 
 public class MParticleClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
     private static final String BASE_URL = "https://inbound.mparticle.com/s2s/v2/";
-    private static final String retryAfterHeaderKey = "Retry-After";
+    private static final String RETRY_AFTER_HEADER = "Retry-After";
+    public static final int TOO_MANY_REQUESTS = 429;
 
     public void submit(final MParticleMessage message) throws RetryLaterException, NoRetryException {
 
@@ -39,8 +39,8 @@ public class MParticleClient {
                 int statusCode = response.code();
                 int retryAfter = 0;
 
-                if (statusCode == 429) {
-                    String retryAfterHeader = response.headers().get(retryAfterHeaderKey);
+                if (statusCode == TOO_MANY_REQUESTS) {
+                    String retryAfterHeader = response.headers().get(RETRY_AFTER_HEADER);
                     if (retryAfterHeader != null) {
                         try {
                             retryAfter = Integer.parseInt(retryAfterHeader);
@@ -59,7 +59,7 @@ public class MParticleClient {
             }
 
             LOGGER.info("Successfully sent message: {}", message);
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             //Retry for all IOExceptions
             throw new RetryLaterException(e);
         }

@@ -5,13 +5,17 @@ public class FailedRequest {
     int statusCode;
     int retryAfter;
     String receiptHandle;
+    int receiveCount;
 
-    public FailedRequest(int statusCode, int retryAfter) {
+    public FailedRequest(int statusCode, int retryAfter, String receiptHandle, int approximateReceiveCount) {
         this.statusCode = statusCode;
         this.retryAfter = retryAfter;
-    }
-    public FailedRequest(String receiptHandle) {
         this.receiptHandle = receiptHandle;
+        this.receiveCount = approximateReceiveCount;
+    }
+    public FailedRequest(String receiptHandle, int approximateReceiveCount) {
+        this.receiptHandle = receiptHandle;
+        this.receiveCount = approximateReceiveCount;
     }
 
     public int getStatusCode() {
@@ -24,6 +28,10 @@ public class FailedRequest {
 
     public String getReceiptHandle() {
         return receiptHandle;
+    }
+
+    public int getReceiveCount() {
+        return receiveCount;
     }
 
     public FailedRequest setReceiptHandle(String receiptHandle) {

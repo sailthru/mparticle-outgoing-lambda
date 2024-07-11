@@ -95,4 +95,12 @@ class MParticleClientTest {
 
         assertThrows(RetryLaterException.class, () -> mParticleClient.submit(message));
     }
+
+    @Test
+    public void testSubmit_RetryOnRuntimeException() throws Exception {
+        when(mockEventsApi.uploadEvents(any(Batch.class))).thenReturn(mockCall);
+        when(mockCall.execute()).thenThrow(new RuntimeException());
+
+        assertThrows(RetryLaterException.class, () -> mParticleClient.submit(message));
+    }
 }

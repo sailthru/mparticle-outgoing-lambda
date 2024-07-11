@@ -1,20 +1,24 @@
 package com.sailthru.sqs.exception;
 
-import com.sailthru.sqs.FailedRequest;
-
 public class RetryLaterException extends Exception {
+    int responseCode;
+    int retryAfter;
+
     public RetryLaterException(final Exception e) {
         super(e);
     }
 
-    FailedRequest failedRequest;
-
     public RetryLaterException(int responseCode, int retryAfter) {
         super();
-        failedRequest = new FailedRequest(responseCode, retryAfter);
+        this.responseCode = responseCode;
+        this.retryAfter = retryAfter;
     }
 
-    public FailedRequest getFailedRequest() {
-        return failedRequest;
+    public int getResponseCode() {
+        return responseCode;
+    }
+
+    public int getRetryAfter() {
+        return retryAfter;
     }
 }
