@@ -18,7 +18,7 @@ import java.util.List;
 
 public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchResponse> {
     private static Logger LOGGER;
-    static String QUEUE_URL = "";
+    static String QUEUE_URL;
     private static int BASE_TIMEOUT;
     private static int TIMEOUT_FACTOR;
 
@@ -34,7 +34,8 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         this.sqsClient = SqsClient.builder().region(Region.US_EAST_1).build();
     }
 
-    public SQSLambdaHandler(SqsClient sqsClient) {
+    // used for test code
+    SQSLambdaHandler(SqsClient sqsClient) {
         this.messageProcessor = new MessageProcessor();
         this.sqsClient = sqsClient;
     }
@@ -84,7 +85,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     }
 
     private void processFailedRequest(FailedRequest failedRequest) {
-        int visibilityTimeout = failedRequest.getRetryAfter() > 0 ?
+        final int visibilityTimeout = failedRequest.getRetryAfter() > 0 ?
                 failedRequest.getRetryAfter() : calculateVisibilityTimeout(failedRequest.getReceiveCount());
         setVisibilityTimeout(failedRequest.getReceiptHandle(), visibilityTimeout);
     }
@@ -100,14 +101,14 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     }
 
     int calculateVisibilityTimeout(int receiveCount) {
-        double lowerBound = BASE_TIMEOUT * Math.pow(TIMEOUT_FACTOR, receiveCount - 1);
-        double higherBound = BASE_TIMEOUT * Math.pow(TIMEOUT_FACTOR, receiveCount);
+        final double lowerBound = BASE_TIMEOUT * Math.pow(TIMEOUT_FACTOR, receiveCount - 1);
+        final double higherBound = BASE_TIMEOUT * Math.pow(TIMEOUT_FACTOR, receiveCount);
         return (int) (Math.random() * (higherBound - lowerBound)) + (int) lowerBound;
     }
 
     static void initialize() {
-        int DEFAULT_BASE_TIMEOUT = 180;
-        int DEFAULT_TIMEOUT_FACTOR = 2;
+        final int DEFAULT_BASE_TIMEOUT = 180;
+        final int DEFAULT_TIMEOUT_FACTOR = 2;
 
         final String levelString = System.getenv("LOG_LEVEL");
         if (levelString != null) {
@@ -132,7 +133,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
 
     private static int getEnvVarAsInt(String varName, int defaultValue) {
         try {
-            String value = System.getenv(varName);
+            final String value = System.getenv(varName);
             return value != null ? Integer.parseInt(value) : defaultValue;
         } catch (NumberFormatException e) {
             LOGGER.error("Invalid environment variable for {}: {}. Using default value: {}",
