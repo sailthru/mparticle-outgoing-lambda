@@ -35,7 +35,8 @@ public class MessageProcessor {
 
     private MParticleOutgoingMessage parseAndValidateMessage(final String rawMessage) throws NoRetryException {
         try {
-            final MParticleOutgoingMessage message = getSerializer().deserialize(rawMessage, MParticleOutgoingMessage.class);
+            final MParticleOutgoingMessage message = getSerializer().deserialize(rawMessage,
+                    MParticleOutgoingMessage.class);
 
             if (StringUtils.isEmpty(message.getAuthenticationKey())) {
                 throw new AuthenticationKeyNotProvidedException("Authentication key not provided.");
