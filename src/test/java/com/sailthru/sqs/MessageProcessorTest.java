@@ -2,6 +2,9 @@ package com.sailthru.sqs;
 
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import com.sailthru.sqs.exception.NoRetryException;
+import com.sailthru.sqs.message.MParticleEventName;
+import com.sailthru.sqs.message.MParticleEventType;
+import com.sailthru.sqs.message.MParticleOutgoingMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,7 +37,7 @@ class MessageProcessorTest {
     private MParticleClient mockMParticleClient;
 
     @Captor
-    private ArgumentCaptor<MParticleMessage> messageCaptor;
+    private ArgumentCaptor<MParticleOutgoingMessage> messageCaptor;
 
     @BeforeEach
     void setUp() {
@@ -67,11 +70,18 @@ class MessageProcessorTest {
 
         verify(mockMParticleClient).submit(messageCaptor.capture());
 
-        final MParticleMessage message = messageCaptor.getValue();
-        assertThat(message.getAuthenticationKey(), is(equalTo("AuthKey123")));
-        assertThat(message.getAuthenticationSecret(), is(equalTo("AuthSecret123")));
-        assertThat(message.getEventName(), is(equalTo("email_open")));
-        assertThat(message.getEventType(), is(equalTo("OTHER")));
+        final MParticleOutgoingMessage message = messageCaptor.getValue();
+        assertThat(message.getAuthenticationKey(), is(equalTo("test_key")));
+        assertThat(message.getAuthenticationSecret(), is(equalTo("test_secret")));
+        assertThat(message.getEvents().size(), is(2));
+
+        final MParticleOutgoingMessage.Event event1 = message.getEvents().get(0);
+        assertThat(event1.getEventName(), is(MParticleEventName.EMAIL_SUBSCRIBE));
+        assertThat(event1.getEventType(), is(equalTo(MParticleEventType.OTHER)));
+
+        final MParticleOutgoingMessage.Event event2 = message.getEvents().get(1);
+        assertThat(event2.getEventName(), is(MParticleEventName.EMAIL_SUBSCRIBE));
+        assertThat(event2.getEventType(), is(equalTo(MParticleEventType.OTHER)));
     }
 
     private void givenValidMessage() throws Exception {
