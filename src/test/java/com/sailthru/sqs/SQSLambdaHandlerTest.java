@@ -142,8 +142,6 @@ class SQSLambdaHandlerTest {
         SQSEvent sqsEvent = new SQSEvent();
         sqsEvent.setRecords(getSqsMessages(recordSize));
 
-        String queueUrl = "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue";
-
         doNothing().when(mockMessageProcessor).process(any(SQSEvent.SQSMessage.class));
 
         Context context = mock(Context.class);
@@ -160,8 +158,7 @@ class SQSLambdaHandlerTest {
         SQSEvent sqsEvent = new SQSEvent();
         sqsEvent.setRecords(getSqsMessages(recordSize));
 
-        String queueUrl = "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue";
-        setupMock(sqsEvent, queueUrl);
+        setupMock(sqsEvent);
 
         Context context = mock(Context.class);
         SQSBatchResponse response = testInstance.handleRequest(sqsEvent, context);
@@ -172,7 +169,7 @@ class SQSLambdaHandlerTest {
         assertThat(response.getBatchItemFailures().size(), is(5));
     }
 
-    private void setupMock(SQSEvent sqsEvent, String queueUrl) throws NoRetryException, RetryLaterException {
+    private void setupMock(SQSEvent sqsEvent) throws NoRetryException, RetryLaterException {
         List<SQSEvent.SQSMessage> records = sqsEvent.getRecords();
         for (int i = 0; i < records.size(); i++) {
             if (i % 2 == 0) {
