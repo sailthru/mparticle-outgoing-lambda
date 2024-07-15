@@ -7,18 +7,25 @@ import com.mparticle.model.CustomEvent;
 import com.mparticle.model.CustomEventData;
 import com.mparticle.model.UserIdentities;
 import com.sailthru.sqs.exception.RetryLaterException;
+import com.sailthru.sqs.message.MParticleOutgoingMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import retrofit2.Call;
 import retrofit2.Response;
 
 import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
+
+import static java.lang.String.format;
+import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
+import static java.util.Optional.ofNullable;
 
 public class MParticleClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
     private static final String BASE_URL = "https://inbound.mparticle.com/s2s/v2/";
 
-    public void submit(final MParticleMessage message) throws RetryLaterException {
+    public void submit(final MParticleOutgoingMessage message) throws RetryLaterException {
 
         final Batch batch = prepareBatch(message);
 
@@ -51,23 +58,38 @@ public class MParticleClient {
         return apiClient.createService(EventsApi.class);
     }
 
-    private Batch prepareBatch(final MParticleMessage message) {
+    private Batch prepareBatch(final MParticleOutgoingMessage message) {
         final Batch batch = new Batch();
         batch.environment(Batch.Environment.DEVELOPMENT);
         batch.userIdentities(new UserIdentities()
                 .email(message.getProfileEmail())
         );
+        batch.timestampUnixtimeMs(parseTimestamp(message.getTimestamp()));
 
-        final CustomEvent event = new CustomEvent().data(
-                new CustomEventData()
-                        .eventName(message.getEventName())
-                        .customEventType(CustomEventData.CustomEventType.valueOf(message.getEventType()))
-        );
+        message.getEvents().forEach(event -> {
+            final CustomEvent customEvent = new CustomEvent().data(
+                    new CustomEventData()
+                            .eventName(event.getEventName().name())
+                            .customEventType(CustomEventData.CustomEventType.valueOf(event.getEventType().name()))
+            );
 
-        event.getData().customAttributes(message.getAdditionalData());
+            customEvent.getData().customAttributes(event.getAdditionalData());
 
-        batch.addEventsItem(event);
+            batch.addEventsItem(event);
+        });
 
         return batch;
+    }
+
+    private Long parseTimestamp(String timestamp) {
+        try {
+            if (!ofNullable(timestamp).orElse("").isEmpty()) {
+                final ZonedDateTime dt = ZonedDateTime.parse(timestamp, ISO_DATE_TIME);
+                return dt.toInstant().toEpochMilli();
+            }
+        } catch (DateTimeParseException e) {
+            LOGGER.warn(format("Failed to parse timestamp: %s", timestamp));
+        }
+        return null;
     }
 }
