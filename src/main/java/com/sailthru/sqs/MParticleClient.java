@@ -14,6 +14,12 @@ import retrofit2.Call;
 import retrofit2.Response;
 
 import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
+
+import static java.lang.String.format;
+import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
+import static java.util.Optional.ofNullable;
 
 public class MParticleClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
@@ -58,6 +64,7 @@ public class MParticleClient {
         batch.userIdentities(new UserIdentities()
                 .email(message.getProfileEmail())
         );
+        batch.timestampUnixtimeMs(parseTimestamp(message.getTimestamp()));
 
         message.getEvents().forEach(event -> {
             final CustomEvent customEvent = new CustomEvent().data(
@@ -72,5 +79,17 @@ public class MParticleClient {
         });
 
         return batch;
+    }
+
+    private Long parseTimestamp(String timestamp) {
+        try {
+            if (!ofNullable(timestamp).orElse("").isEmpty()) {
+                final ZonedDateTime dt = ZonedDateTime.parse(timestamp, ISO_DATE_TIME);
+                return dt.toInstant().toEpochMilli();
+            }
+        } catch (DateTimeParseException e) {
+            LOGGER.warn(format("Failed to parse timestamp: %s", timestamp));
+        }
+        return null;
     }
 }
