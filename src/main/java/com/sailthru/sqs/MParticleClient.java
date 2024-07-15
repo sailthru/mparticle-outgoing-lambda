@@ -75,7 +75,7 @@ public class MParticleClient {
 
             customEvent.getData().customAttributes(event.getAdditionalData());
 
-            batch.addEventsItem(event);
+            batch.addEventsItem(customEvent);
         });
 
         return batch;
