@@ -85,7 +85,7 @@ class MParticleClientTest {
         Response<Void> mockResponse = Response.error(400, ResponseBody.create(MediaType.get("application/json"), ""));
         when(mockCall.execute()).thenReturn(mockResponse);
 
-        assertThrows(NoRetryException.class, () -> mParticleClient.submit(message));
+        assertThrows(RetryLaterException.class, () -> mParticleClient.submit(message));
     }
 
     @Test

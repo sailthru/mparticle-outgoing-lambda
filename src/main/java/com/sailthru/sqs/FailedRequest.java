@@ -2,24 +2,22 @@ package com.sailthru.sqs;
 
 public class FailedRequest {
 
-    int statusCode;
-    int retryAfter;
-    String receiptHandle;
-    int receiveCount;
+    private final String id;
+    private final int statusCode;
+    private final int retryAfter;
+    private final String receiptHandle;
+    private final int receiveCount;
 
-    public FailedRequest(int statusCode, int retryAfter, String receiptHandle, int approximateReceiveCount) {
+    public FailedRequest(String id, int statusCode, int retryAfter, String receiptHandle, int approximateReceiveCount) {
+        this.id = id;
         this.statusCode = statusCode;
         this.retryAfter = retryAfter;
         this.receiptHandle = receiptHandle;
         this.receiveCount = approximateReceiveCount;
     }
-    public FailedRequest(String receiptHandle, int approximateReceiveCount) {
-        this.receiptHandle = receiptHandle;
-        this.receiveCount = approximateReceiveCount;
-    }
 
-    public int getStatusCode() {
-        return statusCode;
+    public String getId() {
+        return id;
     }
 
     public int getRetryAfter() {
@@ -32,10 +30,5 @@ public class FailedRequest {
 
     public int getReceiveCount() {
         return receiveCount;
-    }
-
-    public FailedRequest setReceiptHandle(String receiptHandle) {
-        this.receiptHandle = receiptHandle;
-        return this;
     }
 }

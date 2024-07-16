@@ -51,16 +51,15 @@ public class MParticleClient {
                         LOGGER.warn("Missing Retry-After header for status code 429. Defaulting to 0.");
                     }
                     throw new RetryLaterException(statusCode, retryAfter);
-                } else if (statusCode >= 500 && statusCode < 600) {
+                } else if (statusCode >= 400 && statusCode < 600) {
                     throw new RetryLaterException(statusCode, retryAfter);
                 }
                 //Do not retry for all status code except 429 and status code between 500 and 600
-                throw new NoRetryException(response.message());
+                throw new NoRetryException(statusCode, response.message());
             }
 
             LOGGER.info("Successfully sent message: {}", message);
         } catch (IOException | RuntimeException e) {
-            //Retry for all IOExceptions
             throw new RetryLaterException(e);
         }
     }

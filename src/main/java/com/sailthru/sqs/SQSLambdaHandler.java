@@ -18,26 +18,30 @@ import java.util.List;
 
 public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchResponse> {
     private static Logger LOGGER;
-    static String QUEUE_URL;
-    private static int BASE_TIMEOUT;
-    private static int TIMEOUT_FACTOR;
+    private String QUEUE_URL;
+    private int BASE_TIMEOUT;
+    private int TIMEOUT_FACTOR;
 
     private final SqsClient sqsClient;
     private MessageProcessor messageProcessor;
 
     static {
-        initialize();
+        initializeLogger();
     }
 
     public SQSLambdaHandler() {
+        initializeSystemVars();
         this.messageProcessor = new MessageProcessor();
         this.sqsClient = SqsClient.builder().region(Region.US_EAST_1).build();
     }
 
     // used for test code
-    SQSLambdaHandler(SqsClient sqsClient) {
+    SQSLambdaHandler(SqsClient sqsClient, String queueUrl, int baseTimeout, int timeoutFactor) {
         this.messageProcessor = new MessageProcessor();
         this.sqsClient = sqsClient;
+        this.QUEUE_URL = queueUrl;
+        this.BASE_TIMEOUT = baseTimeout;
+        this.TIMEOUT_FACTOR = timeoutFactor;
     }
 
     @Override
@@ -55,8 +59,8 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
             } catch (RetryLaterException e) {
                 LOGGER.error("Retryable exception occurred processing message id {} " +
                                 "because of exception: {}. Will retry.", sqsMessage.getMessageId(), e.getMessage(), e);
-                FailedRequest failedRequest = new FailedRequest(e.getResponseCode(), e.getRetryAfter(),
-                        sqsMessage.getReceiptHandle(), getApproximateReceiveCount(sqsMessage));
+                FailedRequest failedRequest = new FailedRequest(sqsMessage.getMessageId(), e.getResponseCode(),
+                        e.getRetryAfter(), sqsMessage.getReceiptHandle(), getApproximateReceiveCount(sqsMessage));
 
                 failedRequestList.add(failedRequest);
                 batchItemFailures.add(new SQSBatchResponse.BatchItemFailure(sqsMessage.getMessageId()));
@@ -85,9 +89,13 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     }
 
     private void processFailedRequest(FailedRequest failedRequest) {
-        final int visibilityTimeout = failedRequest.getRetryAfter() > 0 ?
-                failedRequest.getRetryAfter() : calculateVisibilityTimeout(failedRequest.getReceiveCount());
-        setVisibilityTimeout(failedRequest.getReceiptHandle(), visibilityTimeout);
+        try {
+            final int visibilityTimeout = failedRequest.getRetryAfter() > 0 ?
+                    failedRequest.getRetryAfter() : calculateVisibilityTimeout(failedRequest.getReceiveCount());
+            setVisibilityTimeout(failedRequest.getReceiptHandle(), visibilityTimeout);
+        } catch (Exception e) {
+            LOGGER.error("Unable to change visibility timeout of message: {}", failedRequest.getId());
+        }
     }
 
     void setVisibilityTimeout(String receiptHandle, int visibilityTimeout) {
@@ -106,20 +114,30 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         return (int) (Math.random() * (higherBound - lowerBound)) + (int) lowerBound;
     }
 
-    static void initialize() {
-        final int DEFAULT_BASE_TIMEOUT = 180;
-        final int DEFAULT_TIMEOUT_FACTOR = 2;
-
+    static void initializeLogger() {
         final String levelString = System.getenv("LOG_LEVEL");
         if (levelString != null) {
             System.setProperty(SimpleLogger.DEFAULT_LOG_LEVEL_KEY, levelString);
         }
+        LOGGER = LoggerFactory.getLogger(SQSLambdaHandler.class);
+    }
 
-         LOGGER = LoggerFactory.getLogger(SQSLambdaHandler.class);
+    private MessageProcessor getProcessor() {
+        return messageProcessor;
+    }
+
+    public void setMessageProcessor(final MessageProcessor messageProcessor) {
+        this.messageProcessor = messageProcessor;
+    }
+
+    private void initializeSystemVars() {
+        final int DEFAULT_BASE_TIMEOUT = 180;
+        final int DEFAULT_TIMEOUT_FACTOR = 2;
 
         QUEUE_URL = System.getenv("SQS_URL");
         if (QUEUE_URL == null || QUEUE_URL.isEmpty()) {
             LOGGER.error("QUEUE URL is not set");
+            throw new IllegalArgumentException("QUEUE URL is not set");
         }
 
         BASE_TIMEOUT = getEnvVarAsInt("BASE_TIMEOUT", DEFAULT_BASE_TIMEOUT);
@@ -131,7 +149,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         }
     }
 
-    private static int getEnvVarAsInt(String varName, int defaultValue) {
+    private int getEnvVarAsInt(String varName, int defaultValue) {
         try {
             final String value = System.getenv(varName);
             return value != null ? Integer.parseInt(value) : defaultValue;
@@ -140,13 +158,5 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
                     varName, System.getenv(varName), defaultValue);
             return defaultValue;
         }
-    }
-
-    private MessageProcessor getProcessor() {
-        return messageProcessor;
-    }
-
-    public void setMessageProcessor(final MessageProcessor messageProcessor) {
-        this.messageProcessor = messageProcessor;
     }
 }

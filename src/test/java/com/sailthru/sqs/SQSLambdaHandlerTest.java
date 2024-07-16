@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -59,9 +60,8 @@ class SQSLambdaHandlerTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.initMocks(this);
-        testInstance = new SQSLambdaHandler(mockSqsClient);
+        testInstance = new SQSLambdaHandler(mockSqsClient, "test_url", 180, 2);
         testInstance.setMessageProcessor(mockMessageProcessor);
-        SQSLambdaHandler.QUEUE_URL = "testURL";
         lenient().when(mockSQSEvent.getRecords()).thenReturn(List.of(mockSQSMessage));
     }
 
@@ -167,6 +167,11 @@ class SQSLambdaHandlerTest {
         verify(mockMessageProcessor, times(recordSize)).process(any(SQSEvent.SQSMessage.class));
         verify(mockSqsClient, times(5)).changeMessageVisibility(any(ChangeMessageVisibilityRequest.class));
         assertThat(response.getBatchItemFailures().size(), is(5));
+    }
+
+    @Test
+    void testWhenQueueUrlIsNotSet_thenIllegalArgumentExceptionIsThrown() throws Exception {
+        assertThrows(IllegalArgumentException.class, () -> testInstance = new SQSLambdaHandler());
     }
 
     private void setupMock(SQSEvent sqsEvent) throws NoRetryException, RetryLaterException {
