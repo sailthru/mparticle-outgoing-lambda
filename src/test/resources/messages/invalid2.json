@@ -1,6 +1,7 @@
 {
   "authenticationKey": "test_key",
   "authenticationSecret": "",
+  "apiURL": "https://test_url.com",
   "profileEmail": "REDACTED@gmail.com",
   "events": [
     {

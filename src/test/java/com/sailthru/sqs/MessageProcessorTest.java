@@ -80,7 +80,7 @@ class MessageProcessorTest {
         assertThat(event1.getEventType(), is(equalTo(MParticleEventType.OTHER)));
 
         final MParticleOutgoingMessage.Event event2 = message.getEvents().get(1);
-        assertThat(event2.getEventName(), is(MParticleEventName.EMAIL_SUBSCRIBE));
+        assertThat(event2.getEventName(), is(MParticleEventName.EMAIL_UNSUBSCRIBE));
         assertThat(event2.getEventType(), is(equalTo(MParticleEventType.OTHER)));
     }
 
