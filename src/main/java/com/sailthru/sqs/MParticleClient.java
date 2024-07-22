@@ -26,7 +26,7 @@ public class MParticleClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
     static final String DEFAULT_BASE_URL = "https://inbound.mparticle.com/s2s/v2/";
 
-    private ApiFactory apiFactory;
+    private ApiFactory apiFactory = new ApiFactory();
 
     public void submit(final MParticleOutgoingMessage message) throws RetryLaterException {
 
