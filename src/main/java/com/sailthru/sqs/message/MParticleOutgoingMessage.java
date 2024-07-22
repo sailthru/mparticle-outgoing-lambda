@@ -12,6 +12,7 @@ public class MParticleOutgoingMessage {
     private String profileEmail;
     private List<Event> events;
     private String timestamp;
+    private String apiURL;
 
     public String getAuthenticationKey() {
         return authenticationKey;
@@ -51,6 +52,14 @@ public class MParticleOutgoingMessage {
 
     public String getTimestamp() {
         return timestamp;
+    }
+
+    public String getApiURL() {
+        return apiURL;
+    }
+
+    public void setApiURL(String apiURL) {
+        this.apiURL = apiURL;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

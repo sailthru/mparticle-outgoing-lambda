@@ -1,6 +1,5 @@
 package com.sailthru.sqs;
 
-import com.mparticle.ApiClient;
 import com.mparticle.client.EventsApi;
 import com.mparticle.model.Batch;
 import com.mparticle.model.CustomEvent;
@@ -16,20 +15,24 @@ import retrofit2.Response;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.Optional;
 
 import static java.lang.String.format;
 import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
 import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
 
 public class MParticleClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
-    private static final String BASE_URL = "https://inbound.mparticle.com/s2s/v2/";
+    static final String DEFAULT_BASE_URL = "https://inbound.mparticle.com/s2s/v2/";
+
+    private ApiFactory apiFactory;
 
     public void submit(final MParticleOutgoingMessage message) throws RetryLaterException {
 
         final Batch batch = prepareBatch(message);
 
-        final EventsApi eventsApi = getEventsApi(message.getAuthenticationKey(), message.getAuthenticationSecret());
+        final EventsApi eventsApi = getEventsApi(message);
 
         LOGGER.debug("Attempting to send batch: {} for message: {}", batch, message);
 
@@ -50,12 +53,14 @@ public class MParticleClient {
         }
     }
 
-    private EventsApi getEventsApi(final String apiKey, final String apiSecret) {
-        final ApiClient apiClient = new ApiClient(apiKey, apiSecret);
+    private EventsApi getEventsApi(final MParticleOutgoingMessage message) {
+        final String apiKey = message.getAuthenticationKey();
+        final String apiSecret = message.getAuthenticationSecret();
+        final String apiURL = Optional.ofNullable(message.getApiURL())
+                .filter(not(String::isEmpty))
+                .orElse(DEFAULT_BASE_URL);
 
-        apiClient.getAdapterBuilder().baseUrl(BASE_URL);
-
-        return apiClient.createService(EventsApi.class);
+        return apiFactory.create(apiKey, apiSecret, apiURL);
     }
 
     private Batch prepareBatch(final MParticleOutgoingMessage message) {
@@ -91,5 +96,9 @@ public class MParticleClient {
             LOGGER.warn(format("Failed to parse timestamp: %s", timestamp));
         }
         return null;
+    }
+
+    public void setApiFactory(final ApiFactory apiFactory) {
+        this.apiFactory = apiFactory;
     }
 }
