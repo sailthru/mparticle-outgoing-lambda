@@ -51,7 +51,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
 
         event.getRecords().forEach(sqsMessage -> {
             try {
-                getProcessor().process(sqsMessage);
+                getMessageProcessor().process(sqsMessage);
             } catch (NoRetryException e) {
                 LOGGER.error("Non-retryable exception occurred processing message id {} because of: {}.",
                         sqsMessage.getMessageId(),
@@ -94,7 +94,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
                     failedRequest.getRetryAfter() : calculateVisibilityTimeout(failedRequest.getReceiveCount());
             setVisibilityTimeout(failedRequest.getReceiptHandle(), visibilityTimeout);
         } catch (Exception e) {
-            LOGGER.error("Unable to change visibility timeout of message: {}", failedRequest.getId());
+            LOGGER.debug("Change visibility timeout error: {}", e.getMessage(), e);
         }
     }
 
@@ -122,10 +122,11 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         LOGGER = LoggerFactory.getLogger(SQSLambdaHandler.class);
     }
 
-    private MessageProcessor getProcessor() {
+    private MessageProcessor getMessageProcessor() {
         return messageProcessor;
     }
 
+    // used for test code
     public void setMessageProcessor(final MessageProcessor messageProcessor) {
         this.messageProcessor = messageProcessor;
     }
@@ -149,7 +150,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         }
     }
 
-    private int getEnvVarAsInt(String varName, int defaultValue) {
+    private static int getEnvVarAsInt(String varName, int defaultValue) {
         try {
             final String value = System.getenv(varName);
             return value != null ? Integer.parseInt(value) : defaultValue;
