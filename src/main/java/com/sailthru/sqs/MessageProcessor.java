@@ -6,6 +6,7 @@ import com.sailthru.sqs.exception.AuthenticationSecretNotProvidedException;
 import com.sailthru.sqs.exception.NoRetryException;
 import com.sailthru.sqs.exception.RetryLaterException;
 import com.sailthru.sqs.exception.UnparseablePayloadException;
+import com.sailthru.sqs.message.MParticleOutgoingMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.utils.StringUtils;
@@ -27,14 +28,15 @@ public class MessageProcessor {
         final String rawMessage = sqsMessage.getBody();
         LOGGER.debug("Received message: {}", rawMessage);
 
-        final MParticleMessage message = parseAndValidateMessage(rawMessage);
+        final MParticleOutgoingMessage message = parseAndValidateMessage(rawMessage);
 
         getMParticleClient().submit(message);
     }
 
-    private MParticleMessage parseAndValidateMessage(final String rawMessage) throws NoRetryException {
+    private MParticleOutgoingMessage parseAndValidateMessage(final String rawMessage) throws NoRetryException {
         try {
-            final MParticleMessage message = getSerializer().deserialize(rawMessage, MParticleMessage.class);
+            final MParticleOutgoingMessage message = getSerializer().deserialize(rawMessage,
+                    MParticleOutgoingMessage.class);
 
             if (StringUtils.isEmpty(message.getAuthenticationKey())) {
                 throw new AuthenticationKeyNotProvidedException("Authentication key not provided.");

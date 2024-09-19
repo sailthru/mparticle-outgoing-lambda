@@ -1,11 +1,27 @@
 {
   "authenticationKey": "",
-  "authenticationSecret": "AuthSecret123",
-  "eventName": "email_open",
-  "eventType": "OTHER",
-  "additionalData": {
-    "Key1": "Value1",
-    "Key2": "Value2"
-  },
-  "profileEmail": "john.cooper@sailthru.com"
+  "authenticationSecret": "test_secret",
+  "apiURL": null,
+  "profileEmail": "REDACTED@gmail.com",
+  "events": [
+    {
+      "eventName": "EMAIL_SUBSCRIBE",
+      "eventType": "OTHER",
+      "additionalData": {
+        "client_id": "3386",
+        "profile_id": "6634e1bd31a2a0e8af0b0dff",
+        "list_id": "5609b2641aa312d6318b456b"
+      }
+    },
+    {
+      "eventName": "EMAIL_SUBSCRIBE",
+      "eventType": "OTHER",
+      "additionalData": {
+        "client_id": "3386",
+        "profile_id": "6634e1bd31a2a0e8af0b0dff",
+        "list_id": "5609b2641aa312d6318b456c"
+      }
+    }
+  ],
+  "timestamp": "2024-05-03T13:11:17Z[UTC]"
 }
