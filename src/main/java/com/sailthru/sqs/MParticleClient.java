@@ -92,6 +92,9 @@ public class MParticleClient {
                     }
                 }
             }
+            LOGGER.warn("Unable to parse retry after header: {}, will use default", retryAfterHeader);
+        } else {
+            LOGGER.info("Retry-after header missing from response. Will use default.");
         }
         return 0L;
     }
