@@ -6,6 +6,7 @@ import com.mparticle.model.Batch;
 import com.mparticle.model.CustomEvent;
 import com.mparticle.model.CustomEventData;
 import com.mparticle.model.UserIdentities;
+import com.sailthru.sqs.exception.NoRetryException;
 import com.sailthru.sqs.exception.RetryLaterException;
 import com.sailthru.sqs.message.MParticleEventName;
 import com.sailthru.sqs.message.MParticleOutgoingMessage;
@@ -28,11 +29,13 @@ import java.util.Map;
 
 import static com.mparticle.model.CustomEvent.EventTypeEnum.CUSTOM_EVENT;
 import static com.sailthru.sqs.MParticleClient.DEFAULT_BASE_URL;
+import static com.sailthru.sqs.MParticleClient.TOO_MANY_REQUESTS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
@@ -41,7 +44,6 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class MParticleClientTest {
-    @InjectMocks
     private MParticleClient testInstance;
 
     @Mock
@@ -64,19 +66,50 @@ class MParticleClientTest {
         when(mockApiFactory.create(anyString(), anyString(), anyString())).thenReturn(mockEventsApi);
         when(mockEventsApi.uploadEvents(any(Batch.class))).thenReturn(mockCall);
         when(mockCall.execute()).thenReturn(mockResponse);
+        testInstance = new MParticleClient(mockApiFactory);
     }
 
     @Test
-    void givenUnsuccessfulResponseThenRetryLaterExceptionIsThrown() throws Exception {
+    void givenNon429UnsuccessfulResponseThenNoRetryExceptionIsThrown() {
         final MParticleOutgoingMessage validMessageWithURL = givenValidMessage("/messages/valid.json");
 
         when(mockResponse.isSuccessful()).thenReturn(false);
+
+        assertThrows(NoRetryException.class, () -> testInstance.submit(validMessageWithURL));
+    }
+
+    @Test
+    void given429UnsuccessfulResponseThenRetryExceptionIsThrown() {
+        final MParticleOutgoingMessage validMessageWithURL = givenValidMessage("/messages/valid.json");
+
+        when(mockResponse.isSuccessful()).thenReturn(false);
+        when(mockResponse.code()).thenReturn(TOO_MANY_REQUESTS);
 
         assertThrows(RetryLaterException.class, () -> testInstance.submit(validMessageWithURL));
     }
 
     @Test
-    void givenIOExceptionThenRetryLaterExceptionIsThrown() throws Exception {
+    void given500UnsuccessfulResponseThenRetryExceptionIsThrown() {
+        final MParticleOutgoingMessage validMessageWithURL = givenValidMessage("/messages/valid.json");
+
+        when(mockResponse.isSuccessful()).thenReturn(false);
+        when(mockResponse.code()).thenReturn(500);
+
+        assertThrows(RetryLaterException.class, () -> testInstance.submit(validMessageWithURL));
+    }
+
+    @Test
+    public void given400UnsuccessfulResponseThenRetryExceptionIsThrown() {
+        final MParticleOutgoingMessage validMessageWithURL = givenValidMessage("/messages/valid.json");
+
+        when(mockResponse.isSuccessful()).thenReturn(false);
+        when(mockResponse.code()).thenReturn(400);
+
+        assertThrows(RetryLaterException.class, () -> testInstance.submit(validMessageWithURL));
+    }
+
+    @Test
+    void givenIOExceptionThenRetryLaterExceptionIsThrown() throws IOException {
         final MParticleOutgoingMessage validMessageWithURL = givenValidMessage("/messages/valid.json");
 
         when(mockCall.execute()).thenThrow(IOException.class);
@@ -85,7 +118,16 @@ class MParticleClientTest {
     }
 
     @Test
-    void givenValidMessageTheCorrectBatchIsSent() throws Exception {
+    void givenRuntimeExceptionThenRetryLaterExceptionIsThrown() throws IOException {
+        final MParticleOutgoingMessage validMessageWithURL = givenValidMessage("/messages/valid.json");
+
+        when(mockCall.execute()).thenThrow(IOException.class);
+
+        assertThrows(RetryLaterException.class, () -> testInstance.submit(validMessageWithURL));
+    }
+
+    @Test
+    void givenValidMessageTheCorrectBatchIsSent() throws NoRetryException, RetryLaterException {
         final MParticleOutgoingMessage validMessageWithURL = givenValidMessage("/messages/valid.json");
 
         testInstance.submit(validMessageWithURL);
@@ -123,7 +165,7 @@ class MParticleClientTest {
     }
 
     @Test
-    void givenApiURLIsProvidedInMessageThenItIsUsed() throws Exception {
+    void givenApiURLIsProvidedInMessageThenItIsUsed() throws NoRetryException, RetryLaterException {
         final MParticleOutgoingMessage validMessageWithURL = givenValidMessage("/messages/valid.json");
 
         testInstance.submit(validMessageWithURL);
@@ -132,7 +174,7 @@ class MParticleClientTest {
     }
 
     @Test
-    void givenApiURLIsNullInMessageThenDefaultIsUsed() throws Exception {
+    void givenApiURLIsNullInMessageThenDefaultIsUsed() throws NoRetryException, RetryLaterException {
         final MParticleOutgoingMessage validMessage = givenValidMessage("/messages/validWithoutURL.json");
 
         testInstance.submit(validMessage);
@@ -141,7 +183,7 @@ class MParticleClientTest {
     }
 
     @Test
-    void givenApiURLIsMissingThenDefaultIsUsed() throws Exception {
+    void givenApiURLIsMissingThenDefaultIsUsed() throws NoRetryException, RetryLaterException {
         final MParticleOutgoingMessage validMessage = givenValidMessage("/messages/validWithoutURL2.json");
 
         testInstance.submit(validMessage);
@@ -149,11 +191,16 @@ class MParticleClientTest {
         verify(mockApiFactory).create("test_key", "test_secret", DEFAULT_BASE_URL);
     }
 
-    private MParticleOutgoingMessage givenValidMessage(final String filePath) throws Exception {
+    private MParticleOutgoingMessage givenValidMessage(final String filePath) {
         lenient().when(mockResponse.isSuccessful()).thenReturn(true);
 
-        final String json = loadResourceFileContent(filePath);
-        return new ObjectMapper().readValue(json, MParticleOutgoingMessage.class);
+        try {
+            final String json = loadResourceFileContent(filePath);
+            return new ObjectMapper().readValue(json, MParticleOutgoingMessage.class);
+        } catch (IOException | URISyntaxException e) {
+            fail("Unable to load file " + filePath + " from classpath");
+            return null;
+        }
     }
 
     private String loadResourceFileContent(final String path) throws IOException, URISyntaxException {

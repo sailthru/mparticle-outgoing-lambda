@@ -13,6 +13,7 @@ import com.sailthru.sqs.exception.RetryLaterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,13 +54,21 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
             try {
                 getMessageProcessor().process(sqsMessage);
             } catch (NoRetryException e) {
-                LOGGER.error("Non-retryable exception occurred processing message id {} because of: {}.",
+                LOGGER.error(
+                    "Non-retryable exception occurred processing message id {} because of: [{}] {}.",
                         sqsMessage.getMessageId(),
+                        e.getStatusCode(),
                         e.getMessage(), e);
+
             } catch (RetryLaterException e) {
-                LOGGER.error("Retryable exception occurred processing message id {} " +
-                                "because of exception: {}. Will retry.", sqsMessage.getMessageId(), e.getMessage(), e);
-                FailedRequest failedRequest = new FailedRequest(sqsMessage.getMessageId(), e.getResponseCode(),
+                LOGGER.warn(
+                    "Retryable exception occurred processing message id {} because of exception: [{}] {}. Will retry.",
+                    sqsMessage.getMessageId(),
+                    e.getStatusCode(),
+                    e.getMessage(),
+                    e
+                );
+                FailedRequest failedRequest = new FailedRequest(sqsMessage.getMessageId(), e.getStatusCode(),
                         e.getRetryAfter(), sqsMessage.getReceiptHandle(), getApproximateReceiveCount(sqsMessage));
 
                 failedRequestList.add(failedRequest);
@@ -90,10 +99,13 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
 
     private void processFailedRequest(FailedRequest failedRequest) {
         try {
-            final int visibilityTimeout = failedRequest.getRetryAfter() > 0 ?
-                    failedRequest.getRetryAfter() : calculateVisibilityTimeout(failedRequest.getReceiveCount());
+            final int visibilityTimeout = (int) Math.min(
+                failedRequest.getRetryAfter() > 0 ?
+                    failedRequest.getRetryAfter() :
+                    calculateVisibilityTimeout(failedRequest.getReceiveCount()),
+                Integer.MAX_VALUE);
             setVisibilityTimeout(failedRequest.getReceiptHandle(), visibilityTimeout);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             LOGGER.debug("Change visibility timeout error: {}", e.getMessage(), e);
         }
     }
@@ -145,7 +157,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         TIMEOUT_FACTOR = getEnvVarAsInt("TIMEOUT_FACTOR", DEFAULT_TIMEOUT_FACTOR);
 
         if (DEFAULT_TIMEOUT_FACTOR > TIMEOUT_FACTOR) {
-            LOGGER.error("TIMEOUT_FACTOR is less than BASE_TIMEOUT, adjusting to default values");
+            LOGGER.warn("TIMEOUT_FACTOR is less than BASE_TIMEOUT, adjusting to default values");
             TIMEOUT_FACTOR = DEFAULT_TIMEOUT_FACTOR;
         }
     }
@@ -155,7 +167,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
             final String value = System.getenv(varName);
             return value != null ? Integer.parseInt(value) : defaultValue;
         } catch (NumberFormatException e) {
-            LOGGER.error("Invalid environment variable for {}: {}. Using default value: {}",
+            LOGGER.warn("Invalid environment variable for {}: {}. Using default value: {}",
                     varName, System.getenv(varName), defaultValue);
             return defaultValue;
         }

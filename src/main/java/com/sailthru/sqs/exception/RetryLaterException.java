@@ -1,24 +1,26 @@
 package com.sailthru.sqs.exception;
 
 public class RetryLaterException extends Exception {
-    int responseCode;
-    int retryAfter;
+    private final int statusCode;
+    private final long retryAfter;
 
     public RetryLaterException(final Exception e) {
         super(e);
+        this.statusCode = 0;
+        this.retryAfter = 0;
     }
 
-    public RetryLaterException(int responseCode, int retryAfter) {
-        super();
-        this.responseCode = responseCode;
+    public RetryLaterException(int statusCode, String message, long retryAfter) {
+        super(message);
+        this.statusCode = statusCode;
         this.retryAfter = retryAfter;
     }
 
-    public int getResponseCode() {
-        return responseCode;
+    public int getStatusCode() {
+        return statusCode;
     }
 
-    public int getRetryAfter() {
+    public long getRetryAfter() {
         return retryAfter;
     }
 }

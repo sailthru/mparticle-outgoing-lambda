@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.ChangeMessageVisibilityRequest;
 import software.amazon.awssdk.services.sqs.model.ChangeMessageVisibilityResponse;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -59,7 +60,6 @@ class SQSLambdaHandlerTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.initMocks(this);
         testInstance = new SQSLambdaHandler(mockSqsClient, "test_url", 180, 2);
         testInstance.setMessageProcessor(mockMessageProcessor);
         lenient().when(mockSQSEvent.getRecords()).thenReturn(List.of(mockSQSMessage));
@@ -96,7 +96,7 @@ class SQSLambdaHandlerTest {
 
         SQSEvent sqsEvent = createSQSEvent("messageId3", "body3", "receiptHandle3");
 
-        doThrow(new RetryLaterException(500, 120)).when(mockMessageProcessor).process(any());
+        doThrow(new RetryLaterException(500, "Internal Server Error", 120)).when(mockMessageProcessor).process(any());
 
         SQSBatchResponse response = testInstance.handleRequest(sqsEvent, mockContext);
 
@@ -112,7 +112,7 @@ class SQSLambdaHandlerTest {
     public void testSetVisibilityTimeout_CalledWithCorrectParameters() throws Exception {
         SQSEvent sqsEvent = createSQSEvent("messageId6", "body6", "receiptHandle6");
 
-        doThrow(new RetryLaterException(500, 120)).when(mockMessageProcessor).process(any());
+        doThrow(new RetryLaterException(500, "Internal Server Error", 120)).when(mockMessageProcessor).process(any());
 
         testInstance.handleRequest(sqsEvent, mockContext);
 

@@ -1,14 +1,22 @@
 package com.sailthru.sqs;
 
+import java.time.Duration;
+
 public class FailedRequest {
 
     private final String id;
     private final int statusCode;
-    private final int retryAfter;
+    private final long retryAfter;
     private final String receiptHandle;
     private final int receiveCount;
 
-    public FailedRequest(String id, int statusCode, int retryAfter, String receiptHandle, int approximateReceiveCount) {
+    public FailedRequest(
+        String id,
+        int statusCode,
+        long retryAfter,
+        String receiptHandle,
+        int approximateReceiveCount
+    ) {
         this.id = id;
         this.statusCode = statusCode;
         this.retryAfter = retryAfter;
@@ -20,7 +28,7 @@ public class FailedRequest {
         return id;
     }
 
-    public int getRetryAfter() {
+    public long getRetryAfter() {
         return retryAfter;
     }
 
