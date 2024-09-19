@@ -17,11 +17,13 @@ public class MessageProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
 
     private MessageSerializer messageSerializer;
+    private ApiFactory apiFactory;
     private MParticleClient mParticleClient;
 
     public MessageProcessor() {
         messageSerializer = new MessageSerializer();
-        mParticleClient = new MParticleClient();
+        apiFactory = new ApiFactory();
+        mParticleClient = new MParticleClient(apiFactory);
     }
 
     public void process(final SQSEvent.SQSMessage sqsMessage) throws RetryLaterException, NoRetryException {
