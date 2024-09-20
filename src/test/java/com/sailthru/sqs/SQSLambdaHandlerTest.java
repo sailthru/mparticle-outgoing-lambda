@@ -60,7 +60,7 @@ class SQSLambdaHandlerTest {
 
     @BeforeEach
     void setUp() {
-        testInstance = new SQSLambdaHandler(mockSqsClient, "test_url", 180, 2);
+        testInstance = new SQSLambdaHandler(mockSqsClient, "test_url", 180, 2, false);
         testInstance.setMessageProcessor(mockMessageProcessor);
         lenient().when(mockSQSEvent.getRecords()).thenReturn(List.of(mockSQSMessage));
     }

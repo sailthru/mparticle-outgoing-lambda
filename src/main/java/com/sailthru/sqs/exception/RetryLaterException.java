@@ -4,6 +4,13 @@ public class RetryLaterException extends Exception {
     private final int statusCode;
     private final long retryAfter;
 
+    // used for subclasses
+    protected RetryLaterException(String message) {
+        super(message);
+        this.statusCode = 0;
+        this.retryAfter = 1;
+    }
+
     public RetryLaterException(final Exception e) {
         super(e);
         this.statusCode = 0;

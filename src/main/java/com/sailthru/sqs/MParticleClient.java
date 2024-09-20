@@ -2,9 +2,6 @@ package com.sailthru.sqs;
 
 import com.mparticle.client.EventsApi;
 import com.mparticle.model.Batch;
-import com.mparticle.model.CustomEvent;
-import com.mparticle.model.CustomEventData;
-import com.mparticle.model.UserIdentities;
 import com.sailthru.sqs.exception.NoRetryException;
 import com.sailthru.sqs.exception.RetryLaterException;
 import com.sailthru.sqs.message.MParticleOutgoingMessage;
@@ -43,7 +40,7 @@ public class MParticleClient {
     public void submit(final MParticleOutgoingMessage message) throws RetryLaterException, NoRetryException {
         final Instant now = Instant.now();
 
-        final Batch batch = prepareBatch(message);
+        final Batch batch = message.getBatch();
 
         final EventsApi eventsApi = getEventsApi(message);
 
@@ -111,40 +108,5 @@ public class MParticleClient {
                 .orElse(DEFAULT_BASE_URL);
 
         return apiFactory.create(apiKey, apiSecret, apiURL);
-    }
-
-    private Batch prepareBatch(final MParticleOutgoingMessage message) {
-        final Batch batch = new Batch();
-        batch.environment(Batch.Environment.DEVELOPMENT);
-        batch.userIdentities(new UserIdentities()
-                .email(message.getProfileEmail())
-        );
-        batch.timestampUnixtimeMs(parseTimestamp(message.getTimestamp()));
-
-        message.getEvents().forEach(event -> {
-            final CustomEvent customEvent = new CustomEvent().data(
-                    new CustomEventData()
-                            .eventName(event.getEventName().name())
-                            .customEventType(CustomEventData.CustomEventType.valueOf(event.getEventType().name()))
-            );
-
-            customEvent.getData().customAttributes(event.getAdditionalData());
-
-            batch.addEventsItem(customEvent);
-        });
-
-        return batch;
-    }
-
-    private Long parseTimestamp(String timestamp) {
-        try {
-            if (!ofNullable(timestamp).orElse("").isEmpty()) {
-                final ZonedDateTime dt = ZonedDateTime.parse(timestamp, ISO_DATE_TIME);
-                return dt.toInstant().toEpochMilli();
-            }
-        } catch (DateTimeParseException e) {
-            LOGGER.warn(format("Failed to parse timestamp: %s", timestamp));
-        }
-        return null;
     }
 }

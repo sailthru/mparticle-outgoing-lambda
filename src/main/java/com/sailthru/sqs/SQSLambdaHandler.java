@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.SQSBatchResponse;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
+import com.sailthru.sqs.exception.PayloadTooLargeException;
 import org.slf4j.impl.SimpleLogger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -13,7 +14,6 @@ import com.sailthru.sqs.exception.RetryLaterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +22,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     private String QUEUE_URL;
     private int BASE_TIMEOUT;
     private int TIMEOUT_FACTOR;
+    private boolean MPARTICLE_DISABLED = false;
 
     private final SqsClient sqsClient;
     private MessageProcessor messageProcessor;
@@ -32,23 +33,23 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
 
     public SQSLambdaHandler() {
         initializeSystemVars();
-        this.messageProcessor = new MessageProcessor();
+        this.messageProcessor = new MessageProcessor(MPARTICLE_DISABLED);
         this.sqsClient = SqsClient.builder().region(Region.US_EAST_1).build();
     }
 
     // used for test code
-    SQSLambdaHandler(SqsClient sqsClient, String queueUrl, int baseTimeout, int timeoutFactor) {
-        this.messageProcessor = new MessageProcessor();
+    SQSLambdaHandler(SqsClient sqsClient, String queueUrl, int baseTimeout, int timeoutFactor, boolean mparticleDisabled) {
         this.sqsClient = sqsClient;
         this.QUEUE_URL = queueUrl;
         this.BASE_TIMEOUT = baseTimeout;
         this.TIMEOUT_FACTOR = timeoutFactor;
+        this.messageProcessor = new MessageProcessor(mparticleDisabled);
     }
 
     @Override
     public SQSBatchResponse handleRequest(final SQSEvent event, final Context context) {
         final List<SQSBatchResponse.BatchItemFailure> batchItemFailures = new ArrayList<>();
-        final List<FailedRequest> failedRequestList = new ArrayList<>();
+        final List<FailedRequest> changeVisibilityList = new ArrayList<>();
 
         event.getRecords().forEach(sqsMessage -> {
             try {
@@ -59,7 +60,16 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
                         sqsMessage.getMessageId(),
                         e.getStatusCode(),
                         e.getMessage(), e);
-
+            } catch (PayloadTooLargeException e) {
+                // only log the first time we receive
+                if (getApproximateReceiveCount(sqsMessage) <= 1) {
+                    LOGGER.error("Message {} is too large ({} bytes), will not send to mParticle",
+                        sqsMessage.getMessageId(),
+                        e.getMessage());
+                }
+                // don't add to the change visibility list, as we won't adjust the visiblity timeout
+                // we'll retry those messages immediately
+                batchItemFailures.add(new SQSBatchResponse.BatchItemFailure(sqsMessage.getMessageId()));
             } catch (RetryLaterException e) {
                 LOGGER.warn(
                     "Retryable exception occurred processing message id {} because of exception: [{}] {}. Will retry.",
@@ -71,12 +81,12 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
                 FailedRequest failedRequest = new FailedRequest(sqsMessage.getMessageId(), e.getStatusCode(),
                         e.getRetryAfter(), sqsMessage.getReceiptHandle(), getApproximateReceiveCount(sqsMessage));
 
-                failedRequestList.add(failedRequest);
+                changeVisibilityList.add(failedRequest);
                 batchItemFailures.add(new SQSBatchResponse.BatchItemFailure(sqsMessage.getMessageId()));
             }
         });
 
-        processFailedRequests(failedRequestList);
+        changeVisibilityForFailedRequests(changeVisibilityList);
         return new SQSBatchResponse(batchItemFailures);
     }
 
@@ -93,7 +103,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         }
     }
 
-    private void processFailedRequests(List<FailedRequest> failedRequestList) {
+    private void changeVisibilityForFailedRequests(List<FailedRequest> failedRequestList) {
         failedRequestList.forEach(this::processFailedRequest);
     }
 
@@ -159,6 +169,11 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         if (DEFAULT_TIMEOUT_FACTOR > TIMEOUT_FACTOR) {
             LOGGER.warn("TIMEOUT_FACTOR is less than BASE_TIMEOUT, adjusting to default values");
             TIMEOUT_FACTOR = DEFAULT_TIMEOUT_FACTOR;
+        }
+
+        MPARTICLE_DISABLED = getEnvVarAsInt("MPARTICLE_DISABLED", 0) != 0;
+        if (MPARTICLE_DISABLED) {
+            LOGGER.warn("MPARTICLE_DISABLED is set, NO MESSAGES WILL BE SENT TO mPARTICLE!");
         }
     }
 

@@ -197,7 +197,7 @@ class MParticleClientTest {
         try {
             final String json = loadResourceFileContent(filePath);
             return new ObjectMapper().readValue(json, MParticleOutgoingMessage.class);
-        } catch (IOException | URISyntaxException e) {
+        } catch (IOException | URISyntaxException | NullPointerException e) {
             fail("Unable to load file " + filePath + " from classpath");
             return null;
         }
