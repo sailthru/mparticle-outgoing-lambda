@@ -75,7 +75,7 @@ public class MessageProcessor {
     }
 
     // @VisibleForTesting
-    public void setMParticleClient(final MParticleClient mParticleClient) {
+    void setMParticleClient(final MParticleClient mParticleClient) {
         this.mParticleClient = mParticleClient;
     }
 }
