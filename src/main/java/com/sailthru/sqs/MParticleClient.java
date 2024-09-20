@@ -14,13 +14,9 @@ import retrofit2.Response;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.Optional;
 
 import static java.lang.String.format;
-import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
-import static java.util.Optional.ofNullable;
 import static java.util.function.Predicate.not;
 
 public class MParticleClient {
@@ -40,7 +36,7 @@ public class MParticleClient {
     public void submit(final MParticleOutgoingMessage message) throws RetryLaterException, NoRetryException {
         final Instant now = Instant.now();
 
-        final Batch batch = message.getBatch();
+        final Batch batch = message.toBatch();
 
         final EventsApi eventsApi = getEventsApi(message);
 

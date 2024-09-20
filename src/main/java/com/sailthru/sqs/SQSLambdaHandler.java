@@ -16,13 +16,19 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchResponse> {
+    static final String SQS_URL_KEY = "SQS_URL";
+    static final String BASE_TIMEOUT_KEY = "BASE_TIMEOUT";
+    static final String TIMEOUT_FACTOR_KEY = "TIMEOUT_FACTOR";
+    static final String MPARTICLE_DISABLED_KEY = "MPARTICLE_DISABLED";
     private static Logger LOGGER;
-    private String QUEUE_URL;
-    private int BASE_TIMEOUT;
-    private int TIMEOUT_FACTOR;
-    private boolean MPARTICLE_DISABLED = false;
+
+    private String queueUrl;
+    private int baseTimeout;
+    private int timeoutFactor;
+    private boolean mparticleDisabled = false;
 
     private final SqsClient sqsClient;
     private MessageProcessor messageProcessor;
@@ -32,18 +38,14 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     }
 
     public SQSLambdaHandler() {
-        initializeSystemVars();
-        this.messageProcessor = new MessageProcessor(MPARTICLE_DISABLED);
-        this.sqsClient = SqsClient.builder().region(Region.US_EAST_1).build();
+        this(System.getenv(), SqsClient.builder().region(Region.US_EAST_1).build());
     }
 
-    // used for test code
-    SQSLambdaHandler(SqsClient sqsClient, String queueUrl, int baseTimeout, int timeoutFactor, boolean mparticleDisabled) {
-        this.sqsClient = sqsClient;
-        this.QUEUE_URL = queueUrl;
-        this.BASE_TIMEOUT = baseTimeout;
-        this.TIMEOUT_FACTOR = timeoutFactor;
+    // @VisibleForTesting
+    SQSLambdaHandler(Map<String, String> env, SqsClient sqsClient) {
+        initializeSystemVars(env);
         this.messageProcessor = new MessageProcessor(mparticleDisabled);
+        this.sqsClient = sqsClient;
     }
 
     @Override
@@ -122,7 +124,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
 
     void setVisibilityTimeout(String receiptHandle, int visibilityTimeout) {
         ChangeMessageVisibilityRequest changeMessageVisibilityRequest = ChangeMessageVisibilityRequest.builder()
-                .queueUrl(QUEUE_URL)
+                .queueUrl(queueUrl)
                 .receiptHandle(receiptHandle)
                 .visibilityTimeout(visibilityTimeout)
                 .build();
@@ -131,8 +133,8 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     }
 
     int calculateVisibilityTimeout(int receiveCount) {
-        final double lowerBound = BASE_TIMEOUT * Math.pow(TIMEOUT_FACTOR, receiveCount - 1);
-        final double higherBound = BASE_TIMEOUT * Math.pow(TIMEOUT_FACTOR, receiveCount);
+        final double lowerBound = baseTimeout * Math.pow(timeoutFactor, receiveCount - 1);
+        final double higherBound = baseTimeout * Math.pow(timeoutFactor, receiveCount);
         return (int) (Math.random() * (higherBound - lowerBound)) + (int) lowerBound;
     }
 
@@ -144,46 +146,47 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         LOGGER = LoggerFactory.getLogger(SQSLambdaHandler.class);
     }
 
-    private MessageProcessor getMessageProcessor() {
+    // @VisibleForTesting
+    MessageProcessor getMessageProcessor() {
         return messageProcessor;
     }
 
-    // used for test code
-    public void setMessageProcessor(final MessageProcessor messageProcessor) {
+    // @VisibleForTesting
+    void setMessageProcessor(final MessageProcessor messageProcessor) {
         this.messageProcessor = messageProcessor;
     }
 
-    private void initializeSystemVars() {
+    private void initializeSystemVars(Map<String, String> env) {
         final int DEFAULT_BASE_TIMEOUT = 180;
         final int DEFAULT_TIMEOUT_FACTOR = 2;
 
-        QUEUE_URL = System.getenv("SQS_URL");
-        if (QUEUE_URL == null || QUEUE_URL.isEmpty()) {
+        queueUrl = env.get(SQS_URL_KEY);
+        if (queueUrl == null || queueUrl.isEmpty()) {
             LOGGER.error("QUEUE URL is not set");
             throw new IllegalArgumentException("QUEUE URL is not set");
         }
 
-        BASE_TIMEOUT = getEnvVarAsInt("BASE_TIMEOUT", DEFAULT_BASE_TIMEOUT);
-        TIMEOUT_FACTOR = getEnvVarAsInt("TIMEOUT_FACTOR", DEFAULT_TIMEOUT_FACTOR);
+        baseTimeout = getEnvVarAsInt(env, BASE_TIMEOUT_KEY, DEFAULT_BASE_TIMEOUT);
+        timeoutFactor = getEnvVarAsInt(env, TIMEOUT_FACTOR_KEY, DEFAULT_TIMEOUT_FACTOR);
 
-        if (DEFAULT_TIMEOUT_FACTOR > TIMEOUT_FACTOR) {
+        if (DEFAULT_TIMEOUT_FACTOR > timeoutFactor) {
             LOGGER.warn("TIMEOUT_FACTOR is less than BASE_TIMEOUT, adjusting to default values");
-            TIMEOUT_FACTOR = DEFAULT_TIMEOUT_FACTOR;
+            timeoutFactor = DEFAULT_TIMEOUT_FACTOR;
         }
 
-        MPARTICLE_DISABLED = getEnvVarAsInt("MPARTICLE_DISABLED", 0) != 0;
-        if (MPARTICLE_DISABLED) {
+        mparticleDisabled = getEnvVarAsInt(env, MPARTICLE_DISABLED_KEY, 0) != 0;
+        if (mparticleDisabled) {
             LOGGER.warn("MPARTICLE_DISABLED is set, NO MESSAGES WILL BE SENT TO mPARTICLE!");
         }
     }
 
-    private static int getEnvVarAsInt(String varName, int defaultValue) {
+    private static int getEnvVarAsInt(Map<String, String> env, String varName, int defaultValue) {
+        final String value = env.get(varName);
         try {
-            final String value = System.getenv(varName);
             return value != null ? Integer.parseInt(value) : defaultValue;
         } catch (NumberFormatException e) {
             LOGGER.warn("Invalid environment variable for {}: {}. Using default value: {}",
-                    varName, System.getenv(varName), defaultValue);
+                    varName, value, defaultValue);
             return defaultValue;
         }
     }

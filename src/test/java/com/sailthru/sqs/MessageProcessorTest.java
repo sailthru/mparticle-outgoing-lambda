@@ -33,7 +33,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class MessageProcessorTest {
+public class MessageProcessorTest {
     private MessageProcessor testInstance = new MessageProcessor(false);
 
     @Mock
@@ -93,13 +93,23 @@ class MessageProcessorTest {
     }
 
     @Test
-    void givenTooLargeMesasgeProvidedThenCorrectExceptionShouldBeThrown() {
+    void givenTooLargeMessageProvidedThenCorrectExceptionShouldBeThrown() {
         givenTooLongMessage();
 
         PayloadTooLargeException exception = assertThrows(PayloadTooLargeException.class,
             () -> testInstance.process(mockSQSMessage));
         System.out.println(exception.getSize());
         assertThat(exception.getSize(), greaterThan(200_000L));
+        verifyNoInteractions(mockMParticleClient);
+    }
+
+    @Test
+    void givenMparticleSendDisabledThenNoInteractionWithClientOccurs() throws NoRetryException, RetryLaterException {
+        givenDisabledMParticleSend();
+        givenValidMessage();
+
+        testInstance.process(mockSQSMessage);
+
         verifyNoInteractions(mockMParticleClient);
     }
 

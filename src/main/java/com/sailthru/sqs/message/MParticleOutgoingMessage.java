@@ -6,7 +6,6 @@ import com.mparticle.model.Batch;
 import com.mparticle.model.CustomEvent;
 import com.mparticle.model.CustomEventData;
 import com.mparticle.model.UserIdentities;
-import com.sailthru.sqs.MParticleClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +24,7 @@ public class MParticleOutgoingMessage {
     private String authenticationSecret;
     private String profileEmail;
     private String profileMpId;
-    private List<Event> events;
+    private List<Event> events = List.of();
     private String timestamp;
     private String apiURL;
 
@@ -50,10 +49,12 @@ public class MParticleOutgoingMessage {
     }
 
     public void setAuthenticationKey(String authenticationKey) {
+        batch = null;
         this.authenticationKey = authenticationKey;
     }
 
     public void setAuthenticationSecret(String authenticationSecret) {
+        batch = null;
         this.authenticationSecret = authenticationSecret;
     }
 
@@ -62,18 +63,21 @@ public class MParticleOutgoingMessage {
     }
 
     public void setProfileMpId(String profileMpId) {
+        batch = null;
         this.profileMpId = profileMpId;
     }
 
     public List<Event> getEvents() {
-        return events;
+        return List.copyOf(events);
     }
 
     public void setEvents(List<Event> events) {
+        batch = null;
         this.events = events;
     }
 
     public void setTimestamp(final String timestamp) {
+        batch = null;
         this.timestamp = timestamp;
     }
 
@@ -86,11 +90,12 @@ public class MParticleOutgoingMessage {
     }
 
     public void setApiURL(String apiURL) {
+        batch = null;
         this.apiURL = apiURL;
     }
 
     @JsonIgnore
-    public Batch getBatch() {
+    public Batch toBatch() {
         if (batch == null) {
             batch = new Batch();
             batch.environment(Batch.Environment.DEVELOPMENT);
@@ -101,17 +106,9 @@ public class MParticleOutgoingMessage {
                 batch.mpid(Long.parseUnsignedLong(getProfileMpId(), 16));
             }
             batch.timestampUnixtimeMs(parseTimestamp(getTimestamp()));
-
-            getEvents().forEach(event -> {
-                final CustomEvent customEvent = new CustomEvent().data(
-                    (CustomEventData) new CustomEventData()
-                        .eventName(event.getEventName().name())
-                        .customEventType(CustomEventData.CustomEventType.valueOf(event.getEventType().name()))
-                        .customAttributes(event.getAdditionalData())
-                );
-
-                batch.addEventsItem(customEvent);
-            });
+            batch.setEvents(getEvents().stream()
+                .map(Event::toBatchEvent)
+                .toList());
         }
 
         return batch;
@@ -129,7 +126,6 @@ public class MParticleOutgoingMessage {
         return null;
     }
 
-
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Event {
         private MParticleEventName eventName;
@@ -145,19 +141,17 @@ public class MParticleOutgoingMessage {
         }
 
         public Map<String, String> getAdditionalData() {
-            return additionalData;
+            return Map.copyOf(additionalData);
         }
 
-        public void setEventName(MParticleEventName eventName) {
-            this.eventName = eventName;
-        }
-
-        public void setEventType(MParticleEventType eventType) {
-            this.eventType = eventType;
-        }
-
-        public void setAdditionalData(Map<String, String> additionalData) {
-            this.additionalData = Map.copyOf(additionalData);
+        @JsonIgnore
+        public Object toBatchEvent() {
+            return new CustomEvent().data(
+                (CustomEventData) new CustomEventData()
+                    .eventName(getEventName().name())
+                    .customEventType(CustomEventData.CustomEventType.valueOf(getEventType().name()))
+                    .customAttributes(getAdditionalData())
+            );
         }
     }
 }

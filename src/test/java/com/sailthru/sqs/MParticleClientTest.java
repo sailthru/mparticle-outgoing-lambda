@@ -43,7 +43,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class MParticleClientTest {
+public class MParticleClientTest {
     private MParticleClient testInstance;
 
     @Mock

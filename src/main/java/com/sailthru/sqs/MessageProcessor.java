@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.utils.StringUtils;
 
 import java.io.IOException;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class MessageProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
@@ -56,7 +55,7 @@ public class MessageProcessor {
             }
 
             // check the size of the message
-            int outgoingMessageLength = messageSerializer.serialize(message.getBatch()).length;
+            int outgoingMessageLength = messageSerializer.serialize(message.toBatch()).length;
             if (outgoingMessageLength > MAX_MPARTICLE_MESSAGE_LENGTH) {
                 throw new PayloadTooLargeException(outgoingMessageLength);
             }
@@ -75,6 +74,7 @@ public class MessageProcessor {
         return messageSerializer;
     }
 
+    // @VisibleForTesting
     public void setMParticleClient(final MParticleClient mParticleClient) {
         this.mParticleClient = mParticleClient;
     }
