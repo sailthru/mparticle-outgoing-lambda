@@ -55,9 +55,9 @@ public class MessageProcessor {
             }
 
             // check the size of the message
-            int outgoingMessageLength = messageSerializer.serialize(message.toBatch()).length;
+            int outgoingMessageLength = messageSerializer.serializeToBytes(message.toBatch()).length;
             if (outgoingMessageLength > MAX_MPARTICLE_MESSAGE_LENGTH) {
-                throw new PayloadTooLargeException(outgoingMessageLength);
+                throw new PayloadTooLargeException(outgoingMessageLength, message);
             }
 
             return message;

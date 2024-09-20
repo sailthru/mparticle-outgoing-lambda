@@ -4,15 +4,16 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.SQSBatchResponse;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
+import com.sailthru.sqs.exception.NoRetryException;
 import com.sailthru.sqs.exception.PayloadTooLargeException;
-import org.slf4j.impl.SimpleLogger;
+import com.sailthru.sqs.exception.RetryLaterException;
+import com.sailthru.sqs.metrics.Metrics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.simple.SimpleLogger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.ChangeMessageVisibilityRequest;
-import com.sailthru.sqs.exception.NoRetryException;
-import com.sailthru.sqs.exception.RetryLaterException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +33,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
 
     private final SqsClient sqsClient;
     private MessageProcessor messageProcessor;
+    private Metrics metrics;
 
     static {
         initializeLogger();
@@ -46,6 +48,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         initializeSystemVars(env);
         this.messageProcessor = new MessageProcessor(mparticleDisabled);
         this.sqsClient = sqsClient;
+        this.metrics = new Metrics();
     }
 
     @Override
@@ -63,12 +66,19 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
                         e.getStatusCode(),
                         e.getMessage(), e);
             } catch (PayloadTooLargeException e) {
-                // only log the first time we receive
+                // only log the first time we receive the message
                 if (getApproximateReceiveCount(sqsMessage) <= 1) {
-                    LOGGER.error("Message {} is too large ({} bytes), will not send to mParticle",
+                    LOGGER.error("Message {} is too large ({} bytes), will not send to mParticle. [{}] {}",
                         sqsMessage.getMessageId(),
-                        e.getMessage());
+                        e.getMessage(),
+                        e.getOriginalMessage().getClientId(),
+                        e.getOriginalMessage().getProfileMpId() != null ?
+                            e.getOriginalMessage().getProfileMpId() :
+                            e.getOriginalMessage().getProfileEmail());
                 }
+
+                // this will over-evaluate the metric but that's better than missing it sometimes
+                metrics.mark(context, sqsMessage, "MessageTooLarge", 1);
                 // don't add to the change visibility list, as we won't adjust the visiblity timeout
                 // we'll retry those messages immediately
                 batchItemFailures.add(new SQSBatchResponse.BatchItemFailure(sqsMessage.getMessageId()));

@@ -20,10 +20,11 @@ dependencies {
     implementation(platform("software.amazon.awssdk:bom:2.25.60"))
     implementation("software.amazon.awssdk:lambda")
     implementation("software.amazon.awssdk:sqs")
+    implementation("software.amazon.cloudwatchlogs:aws-embedded-metrics:4.2.0")
     // oddly enough awssdk does NOT have the classes for structured Lambda support
     implementation("com.amazonaws:aws-lambda-java-core:1.2.1")
     implementation("com.amazonaws:aws-lambda-java-events:3.11.0")
-    implementation("org.slf4j:slf4j-simple:1.7.32")
+    implementation("org.slf4j:slf4j-simple:2.0.6")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.1")
     implementation("com.mparticle:server-events-sdk:2.5.4")
 

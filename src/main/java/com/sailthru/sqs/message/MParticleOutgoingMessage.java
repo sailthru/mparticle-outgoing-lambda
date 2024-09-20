@@ -22,6 +22,7 @@ import static java.util.Optional.ofNullable;
 public class MParticleOutgoingMessage {
     private String authenticationKey;
     private String authenticationSecret;
+    private long clientId;
     private String profileEmail;
     private String profileMpId;
     private List<Event> events = List.of();
@@ -48,6 +49,10 @@ public class MParticleOutgoingMessage {
         return profileMpId;
     }
 
+    public long getClientId() {
+        return clientId;
+    }
+
     public void setAuthenticationKey(String authenticationKey) {
         batch = null;
         this.authenticationKey = authenticationKey;
@@ -65,6 +70,10 @@ public class MParticleOutgoingMessage {
     public void setProfileMpId(String profileMpId) {
         batch = null;
         this.profileMpId = profileMpId;
+    }
+
+    public void setClientId(long clientId) {
+        this.clientId = clientId;
     }
 
     public List<Event> getEvents() {

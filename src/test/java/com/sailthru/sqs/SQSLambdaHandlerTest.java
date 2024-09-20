@@ -6,6 +6,7 @@ import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import com.sailthru.sqs.exception.NoRetryException;
 import com.sailthru.sqs.exception.PayloadTooLargeException;
 import com.sailthru.sqs.exception.RetryLaterException;
+import com.sailthru.sqs.message.MParticleOutgoingMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -212,7 +213,8 @@ public class SQSLambdaHandlerTest {
         final int recordSize = 10;
         var sqsEvent = new SQSEvent();
         sqsEvent.setRecords(getSqsMessages(recordSize));
-        doThrow(new PayloadTooLargeException(42)).when(mockMessageProcessor).process(any());
+        doThrow(new PayloadTooLargeException(42, new MParticleOutgoingMessage()))
+            .when(mockMessageProcessor).process(any());
 
         SQSBatchResponse response = testInstance.handleRequest(sqsEvent, mockContext);
 
@@ -227,7 +229,8 @@ public class SQSLambdaHandlerTest {
         final int recordSize = 10;
         var sqsEvent = new SQSEvent();
         sqsEvent.setRecords(getSqsMessages(recordSize));
-        doThrow(new PayloadTooLargeException(42)).when(mockMessageProcessor).process(any());
+        doThrow(new PayloadTooLargeException(42, new MParticleOutgoingMessage()))
+            .when(mockMessageProcessor).process(any());
         testInstance.setMessageProcessor(mockMessageProcessor);
 
         SQSBatchResponse response = testInstance.handleRequest(sqsEvent, mockContext);
