@@ -172,7 +172,8 @@ public class SQSLambdaHandlerTest {
         assertThat(response, notNullValue());
         assertThat(response.getBatchItemFailures(), hasSize(5));
         verify(mockMessageProcessor, times(recordSize)).process(any(SQSEvent.SQSMessage.class));
-        verify(mockSqsClient, times(expectedFailures)).changeMessageVisibility(any(ChangeMessageVisibilityRequest.class));
+        verify(mockSqsClient, times(expectedFailures))
+            .changeMessageVisibility(any(ChangeMessageVisibilityRequest.class));
         assertThat(response.getBatchItemFailures(), hasSize(5));
     }
 
@@ -268,7 +269,10 @@ public class SQSLambdaHandlerTest {
 
     private static SQSEvent.SQSMessage generateSqsMessage(int index) {
         SQSEvent.SQSMessage sqsMessage = new SQSEvent.SQSMessage();
-        sqsMessage.setBody("{\"authenticationKey\":\"1\",\"authenticationSecret\":\"2\",\"message\":\"test message" + index + "\"}");
+        // make sure we have a body that mostly passes our basic validation
+        sqsMessage.setBody(
+            "{\"authenticationKey\":\"1\",\"authenticationSecret\":\"2\",\"message\":\"test message" + index + "\"}"
+        );
         sqsMessage.setReceiptHandle("test-receipt-handle" + index);
         sqsMessage.setMessageId(UUID.randomUUID().toString());
         return sqsMessage;

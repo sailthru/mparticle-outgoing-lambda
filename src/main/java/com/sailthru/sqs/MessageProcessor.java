@@ -41,7 +41,9 @@ public class MessageProcessor {
         }
     }
 
-    private MParticleOutgoingMessage parseAndValidateMessage(final String rawMessage) throws NoRetryException, PayloadTooLargeException {
+    private MParticleOutgoingMessage parseAndValidateMessage(
+        final String rawMessage
+    ) throws NoRetryException, PayloadTooLargeException {
         try {
             final MParticleOutgoingMessage message = getSerializer().deserialize(rawMessage,
                     MParticleOutgoingMessage.class);

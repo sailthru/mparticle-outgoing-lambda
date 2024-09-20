@@ -29,7 +29,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     private String queueUrl;
     private int baseTimeout;
     private int timeoutFactor;
-    private boolean mparticleDisabled = false;
+    private boolean mparticleDisabled;
 
     private final SqsClient sqsClient;
     private MessageProcessor messageProcessor;
