@@ -40,15 +40,15 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     }
 
     public SQSLambdaHandler() {
-        this(System.getenv(), SqsClient.builder().region(Region.US_EAST_1).build());
+        this(System.getenv(), SqsClient.builder().region(Region.US_EAST_1).build(), new Metrics());
     }
 
     // @VisibleForTesting
-    SQSLambdaHandler(Map<String, String> env, SqsClient sqsClient) {
+    SQSLambdaHandler(Map<String, String> env, SqsClient sqsClient, Metrics metrics) {
         initializeSystemVars(env);
         this.messageProcessor = new MessageProcessor(mparticleDisabled);
         this.sqsClient = sqsClient;
-        this.metrics = new Metrics();
+        this.metrics = metrics;
     }
 
     @Override
@@ -71,14 +71,14 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
                     LOGGER.error("Message {} is too large ({} bytes), will not send to mParticle. [{}] {}",
                         sqsMessage.getMessageId(),
                         e.getMessage(),
-                        e.getOriginalMessage().getClientId(),
-                        e.getOriginalMessage().getProfileMpId() != null ?
-                            e.getOriginalMessage().getProfileMpId() :
-                            e.getOriginalMessage().getProfileEmail());
+                        e.getPayload().getClientId(),
+                        e.getPayload().getProfileMpId() != null ?
+                            e.getPayload().getProfileMpId() :
+                            e.getPayload().getProfileEmail());
                 }
 
                 // this will over-evaluate the metric but that's better than missing it sometimes
-                metrics.mark(context, sqsMessage, "MessageTooLarge", 1);
+                metrics.mark(context, sqsMessage, Metrics.MESSAGE_TOO_LARGE, 1);
                 // don't add to the change visibility list, as we won't adjust the visiblity timeout
                 // we'll retry those messages immediately
                 batchItemFailures.add(new SQSBatchResponse.BatchItemFailure(sqsMessage.getMessageId()));

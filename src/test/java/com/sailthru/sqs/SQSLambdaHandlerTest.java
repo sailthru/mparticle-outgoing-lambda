@@ -7,6 +7,7 @@ import com.sailthru.sqs.exception.NoRetryException;
 import com.sailthru.sqs.exception.PayloadTooLargeException;
 import com.sailthru.sqs.exception.RetryLaterException;
 import com.sailthru.sqs.message.MParticleOutgoingMessage;
+import com.sailthru.sqs.metrics.Metrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +39,7 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
@@ -66,6 +68,8 @@ public class SQSLambdaHandlerTest {
 
     @Mock
     private MParticleClient mockMParticleClient;
+    @Mock
+    private Metrics mockMetrics;
 
     private SQSLambdaHandler testInstance;
 
@@ -77,7 +81,7 @@ public class SQSLambdaHandlerTest {
             TIMEOUT_FACTOR_KEY, "2",
             MPARTICLE_DISABLED_KEY, "0"
         );
-        testInstance = new SQSLambdaHandler(defaultEnvironment, mockSqsClient);
+        testInstance = new SQSLambdaHandler(defaultEnvironment, mockSqsClient, mockMetrics);
         testInstance.setMessageProcessor(mockMessageProcessor);
         lenient().when(mockSQSEvent.getRecords()).thenReturn(List.of(mockSQSMessage));
     }
@@ -102,6 +106,7 @@ public class SQSLambdaHandlerTest {
         verify(mockMessageProcessor, times(1)).process(any());
         assertThat(response.getBatchItemFailures(), empty());
         verify(mockSqsClient, never()).changeMessageVisibility(any(ChangeMessageVisibilityRequest.class));
+        verifyNoInteractions(mockMetrics);
     }
 
     @Test
@@ -117,6 +122,7 @@ public class SQSLambdaHandlerTest {
         assertThat(response.getBatchItemFailures(), hasSize(1));
         verify(mockMessageProcessor, times(1)).process(any());
         verify(mockSqsClient, times(1)).changeMessageVisibility(any(ChangeMessageVisibilityRequest.class));
+        verifyNoInteractions(mockMetrics);
     }
 
     @Test
@@ -133,6 +139,7 @@ public class SQSLambdaHandlerTest {
         ChangeMessageVisibilityRequest capturedArgument = argumentCaptor.getValue();
         assertThat(capturedArgument.receiptHandle(), is("receiptHandle6"));
         assertThat(capturedArgument.visibilityTimeout(), is(120));
+        verifyNoInteractions(mockMetrics);
     }
 
     @Test
@@ -157,6 +164,7 @@ public class SQSLambdaHandlerTest {
         assertThat(response.getBatchItemFailures(), empty());
         verify(mockMessageProcessor, times(recordSize)).process(any(SQSEvent.SQSMessage.class));
         verify(mockSqsClient, never()).changeMessageVisibility(any(ChangeMessageVisibilityRequest.class));
+        verifyNoInteractions(mockMetrics);
     }
 
     @Test
@@ -175,6 +183,7 @@ public class SQSLambdaHandlerTest {
         verify(mockSqsClient, times(expectedFailures))
             .changeMessageVisibility(any(ChangeMessageVisibilityRequest.class));
         assertThat(response.getBatchItemFailures(), hasSize(5));
+        verifyNoInteractions(mockMetrics);
     }
 
     @Test
@@ -191,7 +200,7 @@ public class SQSLambdaHandlerTest {
 
         assertThat(response, notNullValue());
         assertThat(response.getBatchItemFailures(), empty());
-        verifyNoInteractions(mockMParticleClient, mockSqsClient);
+        verifyNoInteractions(mockMParticleClient, mockSqsClient, mockMetrics);
     }
 
     @Test
@@ -206,7 +215,7 @@ public class SQSLambdaHandlerTest {
 
         assertThat(response, notNullValue());
         assertThat(response.getBatchItemFailures(), empty());
-        verifyNoInteractions(mockSqsClient, mockMParticleClient);
+        verifyNoInteractions(mockSqsClient, mockMParticleClient, mockMetrics);
     }
 
     @Test
@@ -221,6 +230,7 @@ public class SQSLambdaHandlerTest {
 
         assertThat(response, notNullValue());
         assertThat(response.getBatchItemFailures(), hasSize(recordSize));
+        verify(mockMetrics, times(recordSize)).mark(any(), any(), eq(Metrics.MESSAGE_TOO_LARGE), eq(1L));
         verifyNoInteractions(mockSqsClient, mockMParticleClient);
     }
 
@@ -238,6 +248,7 @@ public class SQSLambdaHandlerTest {
 
         assertThat(response, notNullValue());
         assertThat(response.getBatchItemFailures(), hasSize(recordSize));
+        verify(mockMetrics, times(recordSize)).mark(any(), any(), eq(Metrics.MESSAGE_TOO_LARGE), eq(1L));
         verifyNoInteractions(mockSqsClient, mockMParticleClient);
     }
 
@@ -259,7 +270,7 @@ public class SQSLambdaHandlerTest {
             TIMEOUT_FACTOR_KEY, "2",
             MPARTICLE_DISABLED_KEY, "1"
         );
-        testInstance = new SQSLambdaHandler(defaultEnvironment, mockSqsClient);
+        testInstance = new SQSLambdaHandler(defaultEnvironment, mockSqsClient, mockMetrics);
         testInstance.getMessageProcessor().setMParticleClient(mockMParticleClient);
     }
 

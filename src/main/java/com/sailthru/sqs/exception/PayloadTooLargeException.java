@@ -16,7 +16,7 @@ public class PayloadTooLargeException extends RetryLaterException {
         return size;
     }
 
-    public MParticleOutgoingMessage getOriginalMessage() {
+    public MParticleOutgoingMessage getPayload() {
         return originalMessage;
     }
 }

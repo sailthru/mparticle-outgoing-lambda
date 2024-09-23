@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class Metrics {
+    public static final String MESSAGE_TOO_LARGE = "MessageTooLarge";
     private final Supplier<MetricsLogger> metricsFactory;
 
     public Metrics() {
@@ -30,7 +31,7 @@ public class Metrics {
             if (context != null && context.getAwsRequestId() != null) {
                 metrics.putProperty("function_request_id", context.getAwsRequestId());
             }
-            metrics.putMetric("MessageTooLarge", 1, Unit.COUNT, StorageResolution.STANDARD);
+            metrics.putMetric(name, count, Unit.COUNT, StorageResolution.STANDARD);
         });
     }
 
