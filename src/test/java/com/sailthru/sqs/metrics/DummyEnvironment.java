@@ -117,7 +117,7 @@ public class DummyEnvironment implements Environment, ISink {
         Map<String, Object> props
     ) {
         @JsonCreator
-        public LogEvents(
+        LogEvents(
             @JsonProperty("_aws") LogMetadata metadata,
             @JsonProperty("function_request_id") String requestId,
             @JsonProperty("LogGroup") String logGroup,
