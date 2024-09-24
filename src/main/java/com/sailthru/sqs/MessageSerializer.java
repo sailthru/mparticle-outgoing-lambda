@@ -12,7 +12,11 @@ public final class MessageSerializer {
         return this.mapper.readValue(content, valueType);
     }
 
-    public String serialize(Object newMessage) throws JsonProcessingException {
+    public byte[] serializeToBytes(Object newMessage) throws JsonProcessingException {
+        return this.mapper.writeValueAsBytes(newMessage);
+    }
+
+    public String serializeToString(Object newMessage) throws JsonProcessingException {
         return this.mapper.writeValueAsString(newMessage);
     }
 }

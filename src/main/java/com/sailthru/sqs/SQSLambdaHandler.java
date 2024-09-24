@@ -4,51 +4,57 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.SQSBatchResponse;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
-import org.slf4j.impl.SimpleLogger;
+import com.sailthru.sqs.exception.NoRetryException;
+import com.sailthru.sqs.exception.PayloadTooLargeException;
+import com.sailthru.sqs.exception.RetryLaterException;
+import com.sailthru.sqs.metrics.Metrics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.simple.SimpleLogger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.ChangeMessageVisibilityRequest;
-import com.sailthru.sqs.exception.NoRetryException;
-import com.sailthru.sqs.exception.RetryLaterException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchResponse> {
+    static final String SQS_URL_KEY = "SQS_URL";
+    static final String BASE_TIMEOUT_KEY = "BASE_TIMEOUT";
+    static final String TIMEOUT_FACTOR_KEY = "TIMEOUT_FACTOR";
+    static final String MPARTICLE_DISABLED_KEY = "MPARTICLE_DISABLED";
     private static Logger LOGGER;
-    private String QUEUE_URL;
-    private int BASE_TIMEOUT;
-    private int TIMEOUT_FACTOR;
+
+    private String queueUrl;
+    private int baseTimeout;
+    private int timeoutFactor;
+    private boolean mparticleDisabled;
 
     private final SqsClient sqsClient;
     private MessageProcessor messageProcessor;
+    private Metrics metrics;
 
     static {
         initializeLogger();
     }
 
     public SQSLambdaHandler() {
-        initializeSystemVars();
-        this.messageProcessor = new MessageProcessor();
-        this.sqsClient = SqsClient.builder().region(Region.US_EAST_1).build();
+        this(System.getenv(), SqsClient.builder().region(Region.US_EAST_1).build(), new Metrics());
     }
 
-    // used for test code
-    SQSLambdaHandler(SqsClient sqsClient, String queueUrl, int baseTimeout, int timeoutFactor) {
-        this.messageProcessor = new MessageProcessor();
+    // @VisibleForTesting
+    SQSLambdaHandler(Map<String, String> env, SqsClient sqsClient, Metrics metrics) {
+        initializeSystemVars(env);
+        this.messageProcessor = new MessageProcessor(mparticleDisabled);
         this.sqsClient = sqsClient;
-        this.QUEUE_URL = queueUrl;
-        this.BASE_TIMEOUT = baseTimeout;
-        this.TIMEOUT_FACTOR = timeoutFactor;
+        this.metrics = metrics;
     }
 
     @Override
     public SQSBatchResponse handleRequest(final SQSEvent event, final Context context) {
         final List<SQSBatchResponse.BatchItemFailure> batchItemFailures = new ArrayList<>();
-        final List<FailedRequest> failedRequestList = new ArrayList<>();
+        final List<FailedRequest> changeVisibilityList = new ArrayList<>();
 
         event.getRecords().forEach(sqsMessage -> {
             try {
@@ -59,7 +65,23 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
                         sqsMessage.getMessageId(),
                         e.getStatusCode(),
                         e.getMessage(), e);
+            } catch (PayloadTooLargeException e) {
+                // only log the first time we receive the message
+                if (getApproximateReceiveCount(sqsMessage) <= 1) {
+                    LOGGER.error("Message {} is too large ({} bytes), will not send to mParticle. [{}] {}",
+                        sqsMessage.getMessageId(),
+                        e.getMessage(),
+                        e.getPayload().getClientId(),
+                        e.getPayload().getProfileMpId() != null ?
+                            e.getPayload().getProfileMpId() :
+                            e.getPayload().getProfileEmail());
+                }
 
+                // this will over-evaluate the metric but that's better than missing it sometimes
+                metrics.mark(context, sqsMessage, Metrics.MESSAGE_TOO_LARGE, 1);
+                // don't add to the change visibility list, as we won't adjust the visiblity timeout
+                // we'll retry those messages immediately
+                batchItemFailures.add(new SQSBatchResponse.BatchItemFailure(sqsMessage.getMessageId()));
             } catch (RetryLaterException e) {
                 LOGGER.warn(
                     "Retryable exception occurred processing message id {} because of exception: [{}] {}. Will retry.",
@@ -71,12 +93,12 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
                 FailedRequest failedRequest = new FailedRequest(sqsMessage.getMessageId(), e.getStatusCode(),
                         e.getRetryAfter(), sqsMessage.getReceiptHandle(), getApproximateReceiveCount(sqsMessage));
 
-                failedRequestList.add(failedRequest);
+                changeVisibilityList.add(failedRequest);
                 batchItemFailures.add(new SQSBatchResponse.BatchItemFailure(sqsMessage.getMessageId()));
             }
         });
 
-        processFailedRequests(failedRequestList);
+        changeVisibilityForFailedRequests(changeVisibilityList);
         return new SQSBatchResponse(batchItemFailures);
     }
 
@@ -93,7 +115,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         }
     }
 
-    private void processFailedRequests(List<FailedRequest> failedRequestList) {
+    private void changeVisibilityForFailedRequests(List<FailedRequest> failedRequestList) {
         failedRequestList.forEach(this::processFailedRequest);
     }
 
@@ -112,7 +134,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
 
     void setVisibilityTimeout(String receiptHandle, int visibilityTimeout) {
         ChangeMessageVisibilityRequest changeMessageVisibilityRequest = ChangeMessageVisibilityRequest.builder()
-                .queueUrl(QUEUE_URL)
+                .queueUrl(queueUrl)
                 .receiptHandle(receiptHandle)
                 .visibilityTimeout(visibilityTimeout)
                 .build();
@@ -121,8 +143,8 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     }
 
     int calculateVisibilityTimeout(int receiveCount) {
-        final double lowerBound = BASE_TIMEOUT * Math.pow(TIMEOUT_FACTOR, receiveCount - 1);
-        final double higherBound = BASE_TIMEOUT * Math.pow(TIMEOUT_FACTOR, receiveCount);
+        final double lowerBound = baseTimeout * Math.pow(timeoutFactor, receiveCount - 1);
+        final double higherBound = baseTimeout * Math.pow(timeoutFactor, receiveCount);
         return (int) (Math.random() * (higherBound - lowerBound)) + (int) lowerBound;
     }
 
@@ -134,41 +156,47 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         LOGGER = LoggerFactory.getLogger(SQSLambdaHandler.class);
     }
 
-    private MessageProcessor getMessageProcessor() {
+    // @VisibleForTesting
+    MessageProcessor getMessageProcessor() {
         return messageProcessor;
     }
 
-    // used for test code
-    public void setMessageProcessor(final MessageProcessor messageProcessor) {
+    // @VisibleForTesting
+    void setMessageProcessor(final MessageProcessor messageProcessor) {
         this.messageProcessor = messageProcessor;
     }
 
-    private void initializeSystemVars() {
+    private void initializeSystemVars(Map<String, String> env) {
         final int DEFAULT_BASE_TIMEOUT = 180;
         final int DEFAULT_TIMEOUT_FACTOR = 2;
 
-        QUEUE_URL = System.getenv("SQS_URL");
-        if (QUEUE_URL == null || QUEUE_URL.isEmpty()) {
+        queueUrl = env.get(SQS_URL_KEY);
+        if (queueUrl == null || queueUrl.isEmpty()) {
             LOGGER.error("QUEUE URL is not set");
             throw new IllegalArgumentException("QUEUE URL is not set");
         }
 
-        BASE_TIMEOUT = getEnvVarAsInt("BASE_TIMEOUT", DEFAULT_BASE_TIMEOUT);
-        TIMEOUT_FACTOR = getEnvVarAsInt("TIMEOUT_FACTOR", DEFAULT_TIMEOUT_FACTOR);
+        baseTimeout = getEnvVarAsInt(env, BASE_TIMEOUT_KEY, DEFAULT_BASE_TIMEOUT);
+        timeoutFactor = getEnvVarAsInt(env, TIMEOUT_FACTOR_KEY, DEFAULT_TIMEOUT_FACTOR);
 
-        if (DEFAULT_TIMEOUT_FACTOR > TIMEOUT_FACTOR) {
+        if (DEFAULT_TIMEOUT_FACTOR > timeoutFactor) {
             LOGGER.warn("TIMEOUT_FACTOR is less than BASE_TIMEOUT, adjusting to default values");
-            TIMEOUT_FACTOR = DEFAULT_TIMEOUT_FACTOR;
+            timeoutFactor = DEFAULT_TIMEOUT_FACTOR;
+        }
+
+        mparticleDisabled = getEnvVarAsInt(env, MPARTICLE_DISABLED_KEY, 0) != 0;
+        if (mparticleDisabled) {
+            LOGGER.warn("MPARTICLE_DISABLED is set, NO MESSAGES WILL BE SENT TO mPARTICLE!");
         }
     }
 
-    private static int getEnvVarAsInt(String varName, int defaultValue) {
+    private static int getEnvVarAsInt(Map<String, String> env, String varName, int defaultValue) {
+        final String value = env.get(varName);
         try {
-            final String value = System.getenv(varName);
             return value != null ? Integer.parseInt(value) : defaultValue;
         } catch (NumberFormatException e) {
             LOGGER.warn("Invalid environment variable for {}: {}. Using default value: {}",
-                    varName, System.getenv(varName), defaultValue);
+                    varName, value, defaultValue);
             return defaultValue;
         }
     }

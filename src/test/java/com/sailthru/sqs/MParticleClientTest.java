@@ -43,7 +43,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class MParticleClientTest {
+public class MParticleClientTest {
     private MParticleClient testInstance;
 
     @Mock
@@ -197,7 +197,7 @@ class MParticleClientTest {
         try {
             final String json = loadResourceFileContent(filePath);
             return new ObjectMapper().readValue(json, MParticleOutgoingMessage.class);
-        } catch (IOException | URISyntaxException e) {
+        } catch (IOException | URISyntaxException | NullPointerException e) {
             fail("Unable to load file " + filePath + " from classpath");
             return null;
         }

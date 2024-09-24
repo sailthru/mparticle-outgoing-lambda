@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import com.sailthru.sqs.exception.AuthenticationKeyNotProvidedException;
 import com.sailthru.sqs.exception.AuthenticationSecretNotProvidedException;
 import com.sailthru.sqs.exception.NoRetryException;
+import com.sailthru.sqs.exception.PayloadTooLargeException;
 import com.sailthru.sqs.exception.RetryLaterException;
 import com.sailthru.sqs.exception.UnparseablePayloadException;
 import com.sailthru.sqs.message.MParticleOutgoingMessage;
@@ -15,15 +16,18 @@ import java.io.IOException;
 
 public class MessageProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
+    private static final int MAX_MPARTICLE_MESSAGE_LENGTH = 256 * 1000; // 256 kb - rounded down in case they messed up
 
     private MessageSerializer messageSerializer;
+    private boolean mparticleDisabled;
     private ApiFactory apiFactory;
     private MParticleClient mParticleClient;
 
-    public MessageProcessor() {
+    public MessageProcessor(boolean mparticleDisabled) {
         messageSerializer = new MessageSerializer();
         apiFactory = new ApiFactory();
         mParticleClient = new MParticleClient(apiFactory);
+        this.mparticleDisabled = mparticleDisabled;
     }
 
     public void process(final SQSEvent.SQSMessage sqsMessage) throws RetryLaterException, NoRetryException {
@@ -32,10 +36,14 @@ public class MessageProcessor {
 
         final MParticleOutgoingMessage message = parseAndValidateMessage(rawMessage);
 
-        getMParticleClient().submit(message);
+        if (!mparticleDisabled) {
+            getMParticleClient().submit(message);
+        }
     }
 
-    private MParticleOutgoingMessage parseAndValidateMessage(final String rawMessage) throws NoRetryException {
+    private MParticleOutgoingMessage parseAndValidateMessage(
+        final String rawMessage
+    ) throws NoRetryException, PayloadTooLargeException {
         try {
             final MParticleOutgoingMessage message = getSerializer().deserialize(rawMessage,
                     MParticleOutgoingMessage.class);
@@ -46,6 +54,12 @@ public class MessageProcessor {
 
             if (StringUtils.isEmpty(message.getAuthenticationSecret())) {
                 throw new AuthenticationSecretNotProvidedException("Authentication secret not provided.");
+            }
+
+            // check the size of the message
+            int outgoingMessageLength = messageSerializer.serializeToBytes(message.toBatch()).length;
+            if (outgoingMessageLength > MAX_MPARTICLE_MESSAGE_LENGTH) {
+                throw new PayloadTooLargeException(outgoingMessageLength, message);
             }
 
             return message;
@@ -62,7 +76,8 @@ public class MessageProcessor {
         return messageSerializer;
     }
 
-    public void setMParticleClient(final MParticleClient mParticleClient) {
+    // @VisibleForTesting
+    void setMParticleClient(final MParticleClient mParticleClient) {
         this.mParticleClient = mParticleClient;
     }
 }
