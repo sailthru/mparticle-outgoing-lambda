@@ -127,8 +127,6 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
                     calculateVisibilityTimeout(failedRequest.getReceiveCount()),
                 Integer.MAX_VALUE);
             setVisibilityTimeout(failedRequest.getReceiptHandle(), visibilityTimeout);
-            LOGGER.debug("Successfully change the visibility timeout to {} seconds, for message: {}, Receive Count: {}",
-                    visibilityTimeout, failedRequest.getId(), failedRequest.getReceiveCount());
         } catch (RuntimeException e) {
             LOGGER.debug("Change visibility timeout error: {}", e.getMessage(), e);
         }
