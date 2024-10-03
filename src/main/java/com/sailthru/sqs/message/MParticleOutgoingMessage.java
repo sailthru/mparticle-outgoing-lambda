@@ -24,7 +24,7 @@ public class MParticleOutgoingMessage {
     private String authenticationSecret;
     private long clientId;
     private String profileEmail;
-    private String profileMpId;
+    private Long profileMpId;
     private List<Event> events = List.of();
     private String timestamp;
     private String apiURL;
@@ -45,7 +45,7 @@ public class MParticleOutgoingMessage {
         return profileEmail;
     }
 
-    public String getProfileMpId() {
+    public Long getProfileMpId() {
         return profileMpId;
     }
 
@@ -67,7 +67,7 @@ public class MParticleOutgoingMessage {
         this.profileEmail = profileEmail;
     }
 
-    public void setProfileMpId(String profileMpId) {
+    public void setProfileMpId(Long profileMpId) {
         batch = null;
         this.profileMpId = profileMpId;
     }
@@ -112,7 +112,7 @@ public class MParticleOutgoingMessage {
                 .email(getProfileEmail())
             );
             if (getProfileMpId() != null) {
-                batch.mpid(Long.parseUnsignedLong(getProfileMpId(), 16));
+                batch.mpid(getProfileMpId());
             }
             batch.timestampUnixtimeMs(parseTimestamp(getTimestamp()));
             batch.setEvents(getEvents().stream()
