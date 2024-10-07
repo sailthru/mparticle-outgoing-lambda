@@ -103,6 +103,20 @@ public class MParticleClient {
                 .filter(not(String::isEmpty))
                 .orElse(DEFAULT_BASE_URL);
 
-        return apiFactory.create(apiKey, apiSecret, apiURL);
+        return apiFactory.create(apiKey, apiSecret, normalizeUrl(apiURL));
+    }
+
+    private String normalizeUrl(String url) {
+        final int queryIndex = url.indexOf('?');
+        final int slashIndex = queryIndex - 1;
+        if (queryIndex > 0) {
+            if (url.charAt(slashIndex) != '/') {
+                return url.substring(0, queryIndex) + "/" + url.substring(queryIndex);
+            }
+            // fallthrough
+        } else if (!url.endsWith("/")) {
+            return url + "/";
+        }
+        return url;
     }
 }
