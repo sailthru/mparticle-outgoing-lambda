@@ -99,7 +99,7 @@ public class MessageProcessorTest {
         PayloadTooLargeException exception = assertThrows(PayloadTooLargeException.class,
             () -> testInstance.process(mockSQSMessage));
         System.out.println(exception.getSize());
-        assertThat(exception.getSize(), greaterThan(200_000L));
+        assertThat(exception.getSize(), greaterThan(256 * 1024L));
         verifyNoInteractions(mockMParticleClient);
     }
 

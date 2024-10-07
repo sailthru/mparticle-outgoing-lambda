@@ -202,7 +202,6 @@ public class MParticleClientTest {
         verify(mockApiFactory).create("test_key", "test_secret", httpbinUrl + "/");
     }
 
-
     @Test
     void givenApiURLWithoutTrailingSlashContainingQueryThenTrailingSlashIsAdded()
         throws NoRetryException, RetryLaterException {
