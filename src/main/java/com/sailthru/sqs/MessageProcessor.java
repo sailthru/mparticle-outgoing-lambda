@@ -16,7 +16,7 @@ import java.io.IOException;
 
 public class MessageProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
-    private static final int MAX_MPARTICLE_MESSAGE_LENGTH = 256 * 1000; // 256 kb - rounded down in case they messed up
+    private static final int MAX_MPARTICLE_MESSAGE_LENGTH = 256 * 1024; // 256 kb
 
     private MessageSerializer messageSerializer;
     private boolean mparticleDisabled;

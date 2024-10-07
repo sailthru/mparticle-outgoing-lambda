@@ -170,7 +170,7 @@ public class MParticleClientTest {
 
         testInstance.submit(validMessageWithURL);
 
-        verify(mockApiFactory).create("test_key", "test_secret", "https://test_url.com");
+        verify(mockApiFactory).create("test_key", "test_secret", "https://test_url.com/");
     }
 
     @Test
@@ -189,6 +189,29 @@ public class MParticleClientTest {
         testInstance.submit(validMessage);
 
         verify(mockApiFactory).create("test_key", "test_secret", DEFAULT_BASE_URL);
+    }
+
+    @Test
+    void givenApiURLWithoutTrailingSlashThenTrailingSlashIsAdded() throws NoRetryException, RetryLaterException {
+        final MParticleOutgoingMessage validMessage = givenValidMessage("/messages/valid.json");
+        final String httpbinUrl = "http://httpbin.org/status/200%3A99%2C429%3A1";
+        validMessage.setApiURL(httpbinUrl);
+
+        testInstance.submit(validMessage);
+
+        verify(mockApiFactory).create("test_key", "test_secret", httpbinUrl + "/");
+    }
+
+    @Test
+    void givenApiURLWithoutTrailingSlashContainingQueryThenTrailingSlashIsAdded()
+        throws NoRetryException, RetryLaterException {
+        final MParticleOutgoingMessage validMessage = givenValidMessage("/messages/valid.json");
+        final String httpbinUrl = "http://httpbin.org/status/200%3A99%2C429%3A1";
+        validMessage.setApiURL(httpbinUrl + "?test");
+
+        testInstance.submit(validMessage);
+
+        verify(mockApiFactory).create("test_key", "test_secret", httpbinUrl + "/?test");
     }
 
     private MParticleOutgoingMessage givenValidMessage(final String filePath) {
