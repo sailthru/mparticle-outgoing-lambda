@@ -43,21 +43,7 @@ public class MParticleClient {
 
         final EventsApi eventsApi = getEventsApi(message);
 
-        if (LOGGER.isDebugEnabled()) {
-            String batchJson, messageJson;
-            try {
-                batchJson = DEBUG_SERIALIZER.writeValueAsString(batch);
-            } catch (JsonProcessingException e) {
-                batchJson = "(unserializable)";
-            }
-            try {
-                messageJson = DEBUG_SERIALIZER.writeValueAsString(message);
-            } catch (JsonProcessingException e) {
-                messageJson = "(unserializable)";
-            }
-
-            LOGGER.debug("Attempting to send batch: {} for message: {}", batchJson, messageJson);
-        }
+        logReceivedAndTranslatedMessage(message, batch);
 
         final Call<Void> singleResult = eventsApi.uploadEvents(batch);
 
@@ -135,5 +121,23 @@ public class MParticleClient {
             return url + "/";
         }
         return url;
+    }
+
+    private static void logReceivedAndTranslatedMessage(MParticleOutgoingMessage message, Batch batch) {
+        if (LOGGER.isDebugEnabled()) {
+            String batchJson, messageJson;
+            try {
+                batchJson = DEBUG_SERIALIZER.writeValueAsString(batch);
+            } catch (JsonProcessingException e) {
+                batchJson = "(unserializable)";
+            }
+            try {
+                messageJson = DEBUG_SERIALIZER.writeValueAsString(message);
+            } catch (JsonProcessingException e) {
+                messageJson = "(unserializable)";
+            }
+
+            LOGGER.debug("Attempting to send batch: {} for message: {}", batchJson, messageJson);
+        }
     }
 }
