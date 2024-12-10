@@ -1,5 +1,7 @@
 package com.sailthru.sqs;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mparticle.client.EventsApi;
 import com.mparticle.model.Batch;
 import com.sailthru.sqs.exception.NoRetryException;
@@ -16,7 +18,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
-import static java.lang.String.format;
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 import static java.util.function.Predicate.not;
 
 public class MParticleClient {
@@ -28,6 +30,7 @@ public class MParticleClient {
     static final String DEFAULT_BASE_URL = "https://inbound.mparticle.com/s2s/v2/";
 
     private final ApiFactory apiFactory;
+    private static final ObjectMapper DEBUG_SERIALIZER = new ObjectMapper().setSerializationInclusion(NON_EMPTY);
 
     public MParticleClient(ApiFactory apiFactory) {
         this.apiFactory = apiFactory;
@@ -40,7 +43,7 @@ public class MParticleClient {
 
         final EventsApi eventsApi = getEventsApi(message);
 
-        LOGGER.debug("Attempting to send batch: {} for message: {}", batch, message);
+        logReceivedAndTranslatedMessage(message, batch);
 
         final Call<Void> singleResult = eventsApi.uploadEvents(batch);
 
@@ -118,5 +121,23 @@ public class MParticleClient {
             return url + "/";
         }
         return url;
+    }
+
+    private static void logReceivedAndTranslatedMessage(MParticleOutgoingMessage message, Batch batch) {
+        if (LOGGER.isDebugEnabled()) {
+            String batchJson, messageJson;
+            try {
+                batchJson = DEBUG_SERIALIZER.writeValueAsString(batch);
+            } catch (JsonProcessingException e) {
+                batchJson = "(unserializable)";
+            }
+            try {
+                messageJson = DEBUG_SERIALIZER.writeValueAsString(message);
+            } catch (JsonProcessingException e) {
+                messageJson = "(unserializable)";
+            }
+
+            LOGGER.debug("Attempting to send batch: {} for message: {}", batchJson, messageJson);
+        }
     }
 }
