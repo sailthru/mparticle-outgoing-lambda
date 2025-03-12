@@ -31,15 +31,17 @@ public class MParticleClient {
 
     private final ApiFactory apiFactory;
     private static final ObjectMapper DEBUG_SERIALIZER = new ObjectMapper().setSerializationInclusion(NON_EMPTY);
+    private final Batch.Environment environment;
 
-    public MParticleClient(ApiFactory apiFactory) {
+    public MParticleClient(ApiFactory apiFactory, Batch.Environment environment) {
         this.apiFactory = apiFactory;
+        this.environment = environment;
     }
 
     public void submit(final MParticleOutgoingMessage message) throws RetryLaterException, NoRetryException {
         final Instant now = Instant.now();
 
-        final Batch batch = message.toBatch();
+        final Batch batch = message.toBatch(environment);
 
         final EventsApi eventsApi = getEventsApi(message);
 

@@ -1,6 +1,7 @@
 package com.sailthru.sqs;
 
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
+import com.mparticle.model.Batch;
 import com.sailthru.sqs.exception.NoRetryException;
 import com.sailthru.sqs.exception.PayloadTooLargeException;
 import com.sailthru.sqs.exception.RetryLaterException;
@@ -29,12 +30,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class MessageProcessorTest {
-    private MessageProcessor testInstance = new MessageProcessor(false);
+    private MessageProcessor testInstance = new MessageProcessor(false, Batch.Environment.DEVELOPMENT);
 
     @Mock
     private SQSEvent.SQSMessage mockSQSMessage;
@@ -143,7 +143,7 @@ public class MessageProcessorTest {
     }
 
     private void givenDisabledMParticleSend() {
-        testInstance = new MessageProcessor(true);
+        testInstance = new MessageProcessor(true, Batch.Environment.DEVELOPMENT);
         testInstance.setMParticleClient(mockMParticleClient);
     }
 }

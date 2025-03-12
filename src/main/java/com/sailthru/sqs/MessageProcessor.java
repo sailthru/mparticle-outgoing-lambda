@@ -1,6 +1,7 @@
 package com.sailthru.sqs;
 
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
+import com.mparticle.model.Batch;
 import com.sailthru.sqs.exception.AuthenticationKeyNotProvidedException;
 import com.sailthru.sqs.exception.AuthenticationSecretNotProvidedException;
 import com.sailthru.sqs.exception.NoRetryException;
@@ -18,16 +19,18 @@ public class MessageProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessor.class);
     private static final int MAX_MPARTICLE_MESSAGE_LENGTH = 256 * 1024; // 256 kb
 
+    private final Batch.Environment environment;
     private MessageSerializer messageSerializer;
     private boolean mparticleDisabled;
     private ApiFactory apiFactory;
     private MParticleClient mParticleClient;
 
-    public MessageProcessor(boolean mparticleDisabled) {
+    public MessageProcessor(boolean mparticleDisabled, Batch.Environment environment) {
         messageSerializer = new MessageSerializer();
         apiFactory = new ApiFactory();
-        mParticleClient = new MParticleClient(apiFactory);
         this.mparticleDisabled = mparticleDisabled;
+        this.environment = environment;
+        mParticleClient = new MParticleClient(apiFactory, this.environment);
     }
 
     public void process(final SQSEvent.SQSMessage sqsMessage) throws RetryLaterException, NoRetryException {
@@ -57,7 +60,7 @@ public class MessageProcessor {
             }
 
             // check the size of the message
-            int outgoingMessageLength = messageSerializer.serializeToBytes(message.toBatch()).length;
+            int outgoingMessageLength = messageSerializer.serializeToBytes(message.toBatch(environment)).length;
             if (outgoingMessageLength > MAX_MPARTICLE_MESSAGE_LENGTH) {
                 throw new PayloadTooLargeException(outgoingMessageLength, message);
             }

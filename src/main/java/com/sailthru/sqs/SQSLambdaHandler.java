@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.SQSBatchResponse;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
+import com.mparticle.model.Batch;
 import com.sailthru.sqs.exception.NoRetryException;
 import com.sailthru.sqs.exception.PayloadTooLargeException;
 import com.sailthru.sqs.exception.RetryLaterException;
@@ -18,19 +19,24 @@ import software.amazon.awssdk.services.sqs.model.ChangeMessageVisibilityRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchResponse> {
     static final String SQS_URL_KEY = "SQS_URL";
     static final String BASE_TIMEOUT_KEY = "BASE_TIMEOUT";
     static final String TIMEOUT_FACTOR_KEY = "TIMEOUT_FACTOR";
     static final String MPARTICLE_DISABLED_KEY = "MPARTICLE_DISABLED";
+    static final String ENVIRONMENT_KEY = "ENVIRONMENT";
+    static final String STAGE_ENVIRONMENT = "stage";
+    static final String PROD_ENVIRONMENT = "prod";
+
     private static Logger LOGGER;
 
     private String queueUrl;
     private int baseTimeout;
     private int timeoutFactor;
     private boolean mparticleDisabled;
-
+    private Batch.Environment environment;
     private final SqsClient sqsClient;
     private MessageProcessor messageProcessor;
     private Metrics metrics;
@@ -46,7 +52,7 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     // @VisibleForTesting
     SQSLambdaHandler(Map<String, String> env, SqsClient sqsClient, Metrics metrics) {
         initializeSystemVars(env);
-        this.messageProcessor = new MessageProcessor(mparticleDisabled);
+        this.messageProcessor = new MessageProcessor(mparticleDisabled, environment);
         this.sqsClient = sqsClient;
         this.metrics = metrics;
     }
@@ -169,6 +175,8 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
     }
 
     private void initializeSystemVars(Map<String, String> env) {
+        LOGGER.debug("Environment variables: {}",  env);
+
         final int DEFAULT_BASE_TIMEOUT = 180;
         final int DEFAULT_TIMEOUT_FACTOR = 2;
 
@@ -190,6 +198,8 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
         if (mparticleDisabled) {
             LOGGER.warn("MPARTICLE_DISABLED is set, NO MESSAGES WILL BE SENT TO mPARTICLE!");
         }
+
+        environment = calculateEnvironment(env);
     }
 
     private static int getEnvVarAsInt(Map<String, String> env, String varName, int defaultValue) {
@@ -201,5 +211,22 @@ public class SQSLambdaHandler implements RequestHandler<SQSEvent, SQSBatchRespon
                     varName, value, defaultValue);
             return defaultValue;
         }
+    }
+
+    private Batch.Environment calculateEnvironment(Map<String, String> env) {
+        final String environmentSetting = Optional.ofNullable(env.get(ENVIRONMENT_KEY)).orElse(STAGE_ENVIRONMENT);
+
+        switch (environmentSetting) {
+            case STAGE_ENVIRONMENT:
+                return Batch.Environment.DEVELOPMENT;
+            case PROD_ENVIRONMENT:
+                return Batch.Environment.PRODUCTION;
+            default:
+                return Batch.Environment.UNKNOWN;
+        }
+    }
+
+    public Batch.Environment getEnvironment() {
+        return environment;
     }
 }

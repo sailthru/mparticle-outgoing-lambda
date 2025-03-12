@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import retrofit2.Call;
@@ -66,7 +65,7 @@ public class MParticleClientTest {
         when(mockApiFactory.create(anyString(), anyString(), anyString())).thenReturn(mockEventsApi);
         when(mockEventsApi.uploadEvents(any(Batch.class))).thenReturn(mockCall);
         when(mockCall.execute()).thenReturn(mockResponse);
-        testInstance = new MParticleClient(mockApiFactory);
+        testInstance = new MParticleClient(mockApiFactory, Batch.Environment.DEVELOPMENT);
     }
 
     @Test
