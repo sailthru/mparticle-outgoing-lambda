@@ -3,6 +3,7 @@ package com.sailthru.sqs;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.SQSBatchResponse;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
+import com.mparticle.model.Batch;
 import com.sailthru.sqs.exception.NoRetryException;
 import com.sailthru.sqs.exception.PayloadTooLargeException;
 import com.sailthru.sqs.exception.RetryLaterException;
@@ -27,11 +28,15 @@ import java.util.stream.IntStream;
 
 import static com.sailthru.sqs.SQSLambdaHandler.BASE_TIMEOUT_KEY;
 import static com.sailthru.sqs.SQSLambdaHandler.MPARTICLE_DISABLED_KEY;
+import static com.sailthru.sqs.SQSLambdaHandler.PROD_ENVIRONMENT;
 import static com.sailthru.sqs.SQSLambdaHandler.SQS_URL_KEY;
+import static com.sailthru.sqs.SQSLambdaHandler.STAGE_ENVIRONMENT;
 import static com.sailthru.sqs.SQSLambdaHandler.TIMEOUT_FACTOR_KEY;
+import static com.sailthru.sqs.SQSLambdaHandler.ENVIRONMENT_KEY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -79,7 +84,8 @@ public class SQSLambdaHandlerTest {
             SQS_URL_KEY, "test_url",
             BASE_TIMEOUT_KEY, "180",
             TIMEOUT_FACTOR_KEY, "2",
-            MPARTICLE_DISABLED_KEY, "0"
+            MPARTICLE_DISABLED_KEY, "0",
+            ENVIRONMENT_KEY,  "prod"
         );
         testInstance = new SQSLambdaHandler(defaultEnvironment, mockSqsClient, mockMetrics);
         testInstance.setMessageProcessor(mockMessageProcessor);
@@ -201,6 +207,51 @@ public class SQSLambdaHandlerTest {
         assertThat(response, notNullValue());
         assertThat(response.getBatchItemFailures(), empty());
         verifyNoInteractions(mockMParticleClient, mockSqsClient, mockMetrics);
+    }
+
+    @Test
+    void givenStageEnvironmentThenDevelopmentBatchEnvironmentSet() {
+        final Map<String, String> defaultEnvironment = Map.of(
+                SQS_URL_KEY, "test_url",
+                BASE_TIMEOUT_KEY, "180",
+                TIMEOUT_FACTOR_KEY, "2",
+                MPARTICLE_DISABLED_KEY, "1",
+                ENVIRONMENT_KEY, STAGE_ENVIRONMENT
+        );
+
+        testInstance = new SQSLambdaHandler(defaultEnvironment, mockSqsClient, mockMetrics);
+
+        assertThat(testInstance.getEnvironment(), is(equalTo(Batch.Environment.DEVELOPMENT)));
+    }
+
+    @Test
+    void givenProdEnvironmentThenProductionBatchEnvironmentSet() {
+        final Map<String, String> defaultEnvironment = Map.of(
+                SQS_URL_KEY, "test_url",
+                BASE_TIMEOUT_KEY, "180",
+                TIMEOUT_FACTOR_KEY, "2",
+                MPARTICLE_DISABLED_KEY, "1",
+                ENVIRONMENT_KEY, PROD_ENVIRONMENT
+        );
+
+        testInstance = new SQSLambdaHandler(defaultEnvironment, mockSqsClient, mockMetrics);
+
+        assertThat(testInstance.getEnvironment(), is(equalTo(Batch.Environment.PRODUCTION)));
+    }
+
+    @Test
+    void givenBogusEnvironmentThenUnknownBatchEnvironmentSet() {
+        final Map<String, String> defaultEnvironment = Map.of(
+                SQS_URL_KEY, "test_url",
+                BASE_TIMEOUT_KEY, "180",
+                TIMEOUT_FACTOR_KEY, "2",
+                MPARTICLE_DISABLED_KEY, "1",
+                ENVIRONMENT_KEY, "sdasdasda"
+        );
+
+        testInstance = new SQSLambdaHandler(defaultEnvironment, mockSqsClient, mockMetrics);
+
+        assertThat(testInstance.getEnvironment(), is(equalTo(Batch.Environment.UNKNOWN)));
     }
 
     @Test

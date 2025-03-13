@@ -104,10 +104,10 @@ public class MParticleOutgoingMessage {
     }
 
     @JsonIgnore
-    public Batch toBatch() {
+    public Batch toBatch(final Batch.Environment environment) {
         if (batch == null) {
             batch = new Batch();
-            batch.environment(Batch.Environment.DEVELOPMENT);
+            batch.environment(environment);
             batch.userIdentities(new UserIdentities()
                 .email(getProfileEmail())
             );
