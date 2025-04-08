@@ -62,7 +62,7 @@ public class MParticleClientTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        when(mockApiFactory.create(anyString(), anyString(), anyString())).thenReturn(mockEventsApi);
+        when(mockApiFactory.of(anyString(), anyString(), anyString())).thenReturn(mockEventsApi);
         when(mockEventsApi.uploadEvents(any(Batch.class))).thenReturn(mockCall);
         when(mockCall.execute()).thenReturn(mockResponse);
         testInstance = new MParticleClient(mockApiFactory, Batch.Environment.DEVELOPMENT);
@@ -169,7 +169,7 @@ public class MParticleClientTest {
 
         testInstance.submit(validMessageWithURL);
 
-        verify(mockApiFactory).create("test_key", "test_secret", "https://test_url.com/");
+        verify(mockApiFactory).of("test_key", "test_secret", "https://test_url.com/");
     }
 
     @Test
@@ -178,7 +178,7 @@ public class MParticleClientTest {
 
         testInstance.submit(validMessage);
 
-        verify(mockApiFactory).create("test_key", "test_secret", DEFAULT_BASE_URL);
+        verify(mockApiFactory).of("test_key", "test_secret", DEFAULT_BASE_URL);
     }
 
     @Test
@@ -187,7 +187,7 @@ public class MParticleClientTest {
 
         testInstance.submit(validMessage);
 
-        verify(mockApiFactory).create("test_key", "test_secret", DEFAULT_BASE_URL);
+        verify(mockApiFactory).of("test_key", "test_secret", DEFAULT_BASE_URL);
     }
 
     @Test
@@ -198,7 +198,7 @@ public class MParticleClientTest {
 
         testInstance.submit(validMessage);
 
-        verify(mockApiFactory).create("test_key", "test_secret", httpbinUrl + "/");
+        verify(mockApiFactory).of("test_key", "test_secret", httpbinUrl + "/");
     }
 
     @Test
@@ -210,7 +210,7 @@ public class MParticleClientTest {
 
         testInstance.submit(validMessage);
 
-        verify(mockApiFactory).create("test_key", "test_secret", httpbinUrl + "/?test");
+        verify(mockApiFactory).of("test_key", "test_secret", httpbinUrl + "/?test");
     }
 
     private MParticleOutgoingMessage givenValidMessage(final String filePath) {
