@@ -108,7 +108,7 @@ public class MParticleClient {
                 .filter(not(String::isEmpty))
                 .orElse(DEFAULT_BASE_URL);
 
-        return apiFactory.create(apiKey, apiSecret, normalizeUrl(apiURL));
+        return apiFactory.of(apiKey, apiSecret, normalizeUrl(apiURL));
     }
 
     private String normalizeUrl(String url) {
